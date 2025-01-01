@@ -17,6 +17,7 @@ import (
 type Dome struct {
 	blockedUserAgents *ahocorasick.Matcher
 	blockedPaths      *ahocorasick.Matcher
+	softBlockedPaths  *ahocorasick.Matcher
 	blockedIPs        otter.CacheWithVariableTTL[string, int]
 	logDatabase       data.Collection
 	logStatusCodes    []int
@@ -33,7 +34,8 @@ func New(options ...Option) Dome {
 	// Default settings...
 	result.With(
 		BlockKnownBadBots(),
-		BlockKnownPaths(),
+		BlockPaths(BlockedPaths...),
+		SoftBlockPaths(SuspiciousPaths...),
 		BlockStatusCodes(http.StatusForbidden),
 		LogStatusCodes(http.StatusBadRequest, http.StatusNotFound, http.StatusInternalServerError),
 	)
@@ -53,21 +55,23 @@ func (dome *Dome) With(options ...Option) {
 // VerifyHeader verifies the returns TRUE if the provided user agent is blocked (not allowed).
 func (dome *Dome) VerifyRequest(request *http.Request) error {
 
+	const location = "dome.VerifyRequest"
+
 	// If this IP address has caused more than 5 qualifying errors (since the TTL) then block this request.
 	if count, _ := dome.blockedIPs.Get(realIPAddress(request)); count > 5 {
-		return derp.NewForbiddenError("dome.VerifyHeader", "Blocked due to previous scanning activity.  Try again later.", request.RemoteAddr)
+		return derp.NewForbiddenError(location, "Blocked due to previous scanning activity.  Try again later.", request.RemoteAddr)
 	}
 
 	// Try to block request based on the User-Agent
 	userAgent := request.Header.Get("User-Agent")
 
 	if userAgent == "" {
-		return derp.NewForbiddenError("dome.VerifyHeader", "User Agent must not be empty")
+		return derp.NewForbiddenError(location, "User Agent must not be empty")
 	}
 
 	if dome.blockedUserAgents != nil {
 		if dome.blockedUserAgents.Contains([]byte(userAgent)) {
-			return derp.NewForbiddenError("dome.VerifyHeader", "User Agent is blocked", userAgent)
+			return derp.NewForbiddenError(location, "User Agent is blocked", userAgent)
 		}
 	}
 
@@ -75,7 +79,7 @@ func (dome *Dome) VerifyRequest(request *http.Request) error {
 	if dome.blockedPaths != nil {
 		path := request.URL.Path
 		if dome.blockedPaths.Contains([]byte(path)) {
-			return derp.NewForbiddenError("dome.VerifyHeader", "Path is blocked", path)
+			return derp.NewForbiddenError(location, "Path is blocked", path)
 		}
 	}
 
@@ -85,11 +89,13 @@ func (dome *Dome) VerifyRequest(request *http.Request) error {
 
 // HandleError is called by the HTTP middleware to report an error back into the Dome.
 // Based on configureation settings, this will log the error and/or block the IP address.
-func (d *Dome) HandleError(request *http.Request, err error) {
+func (d *Dome) HandleError(request *http.Request, err error) error {
+
+	const location = "dome.HandleError"
 
 	// If no error, then no error
 	if err == nil {
-		return
+		return nil
 	}
 
 	statusCode := derp.ErrorCode(err)
@@ -111,19 +117,34 @@ func (d *Dome) HandleError(request *http.Request, err error) {
 			}
 
 			if err := d.logDatabase.Save(&record, ""); err != nil {
-				derp.Report(derp.Wrap(err, "dome.HandleError", "Error saving log record"))
+				derp.Report(derp.Wrap(err, location, "Error saving log record"))
 			}
 		}
 	}
 
-	// Try to block this IP address based on the statusCode
+	block := false
+
 	if sliceContains(d.blockStatusCodes, statusCode) {
+		block = true
+
+	} else if d.softBlockedPaths != nil {
+		path := request.URL.Path
+		if d.softBlockedPaths.Contains([]byte(path)) {
+			err = derp.NewForbiddenError(location, "Path is blocked", path)
+			block = true
+		}
+	}
+
+	// Try to block this IP address based on the statusCode
+	if block {
 		remoteAddress := realIPAddress(request)          // get the real IP address (not some shifty, fake one)
 		errorCount, _ := d.blockedIPs.Get(remoteAddress) // get the existing error count
 		errorCount = errorCount + 1                      // increment
 		ttl := getTTL(errorCount)                        // calculate the TTL based on the number of errors in the queue
 		d.blockedIPs.Set(remoteAddress, errorCount, ttl) // save the new error count.
 	}
+
+	return err
 }
 
 func (d *Dome) Close() {

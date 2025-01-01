@@ -33,14 +33,21 @@ func BlockUserAgents(blockedAgents ...string) Option {
  * Blocking Known Paths
  ******************************************/
 
-func BlockKnownPaths() Option {
-	return BlockPaths(KnownPaths...)
+// SoftBlockpaths is a dome.Option that soft blocks the provided paths.
+// This means that the requests are allowed, but will count towards a
+// client's score if the request returns a 404 error.
+func SoftBlockPaths(paths ...string) Option {
+	return func(d *Dome) {
+		d.softBlockedPaths = ahocorasick.NewStringMatcher(paths)
+	}
 }
 
 // BlockPaths is a dome.Option that blocks the provided paths.
-func BlockPaths(blockedPaths ...string) Option {
+// These requests are blocked from the application server, and will
+// count towards a client's score.
+func BlockPaths(paths ...string) Option {
 	return func(d *Dome) {
-		d.blockedPaths = ahocorasick.NewStringMatcher(blockedPaths)
+		d.blockedPaths = ahocorasick.NewStringMatcher(paths)
 	}
 }
 
