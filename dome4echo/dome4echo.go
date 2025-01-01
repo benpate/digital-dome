@@ -17,7 +17,7 @@ func New(d *dome.Dome) echo.MiddlewareFunc {
 
 			// If this request is blocked, then halt here.
 			if err := d.VerifyRequest(ctx.Request()); err != nil {
-				d.HandleError(ctx.Request(), err)
+				_ = d.HandleError(ctx.Request(), err)
 				ctx.Response().Header().Set("X-Dome-Blocked", derp.Message(err))
 				return ctx.String(http.StatusForbidden, "Forbidden")
 			}
