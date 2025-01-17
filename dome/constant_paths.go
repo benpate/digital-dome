@@ -19,7 +19,7 @@ var BlockedPaths = []string{
 	"/php-cgi/", // PHP directories
 	"/phpinfo",  // Misc PHP
 
-	"/s3cmd" // s3cmd configuration file, 
+	"/s3cmd",              // s3cmd configuration file
 	"/aspera/faspex",      // CVE-2024-45096 (Aspera Faspex)
 	"/config.json",        // JSON configuration file
 	"/elfinder/connector", // CVE-2021-32682 (elFinder file manager)
