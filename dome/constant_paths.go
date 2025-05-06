@@ -11,6 +11,8 @@ var BlockedPaths = []string{
 	"/.git/",                  // Git repository
 	"/.vscode/",               // Visual Studio Code directory
 	"/.msmtprc",               // ???
+	"/.svn/",                  // Subversion repository
+	"/kube",                   // Kubernetes directory
 	",create_function/",       // https://nvd.nist.gov/vuln/detail/CVE-2014-8877
 
 	".asp",      // ASP files
@@ -47,6 +49,8 @@ var SuspiciousPaths = []string{
 	"/api",
 	"/aspera/",
 	"/aspx/",
+	"/aws_credentials",
+	"/awsconfig.json",
 	"/backup",
 	"/backups",
 	"/bc",
@@ -56,14 +60,17 @@ var SuspiciousPaths = []string{
 	"/ckeditor",
 	"/config",
 	"/credentials",
+	"/database.sql",
 	"/db",
 	"/dbadmin",
 	"/db-admin",
 	"/db-admin.php",
+	"/.DS_Store",
 	"/dump.sql",
 	"/env",
 	"/FCKeditor/",
 	"/feed",
+	"/.gits",
 	"/info",
 	"/infos",
 	"/includ",
@@ -76,6 +83,7 @@ var SuspiciousPaths = []string{
 	"/phpunit",
 	"/Public/",
 	"/renderers",
+	"/sendgrid.env",
 	"/static/",
 	"/temp",
 	"/test",
@@ -85,4 +93,5 @@ var SuspiciousPaths = []string{
 	"/wordpress",
 	"/workflow",
 	"/wp",
+	"/ws-config.json",
 }
