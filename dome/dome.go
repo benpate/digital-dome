@@ -5,6 +5,7 @@ import (
 
 	"github.com/benpate/data"
 	"github.com/benpate/derp"
+	domaintools "github.com/benpate/domain"
 	"github.com/cloudflare/ahocorasick"
 	"github.com/maypok86/otter"
 )
@@ -109,7 +110,7 @@ func (d *Dome) HandleError(request *http.Request, err error) error {
 			record := Request{
 				UserAgent:  request.Header.Get("User-Agent"),
 				IPAddress:  realIPAddress(request),
-				URL:        request.Host + request.URL.RequestURI(),
+				URL:        domaintools.Hostname(request) + request.URL.RequestURI(),
 				Method:     request.Method,
 				StatusCode: statusCode,
 				StatusText: http.StatusText(statusCode),
