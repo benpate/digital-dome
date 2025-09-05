@@ -11,7 +11,7 @@
 
 ## Opinionated Shield from AIs and Malicious Scanners.
 
-Digital dome is a fast, minimal web application firewall that uses request information to protect a site against AI scanners.  It hosts several configurable rules, along with sensible (if aggressive) defaults.
+Digital dome is a fast, minimal web application firewall that uses request information to protect a site against AI scanners.  It hosts several configurable rules, along with sensible, aggressive defaults.
 
 ## Quickstart
 
