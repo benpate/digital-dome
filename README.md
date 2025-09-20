@@ -11,7 +11,7 @@
 
 ## Opinionated Shield from AIs and Malicious Scanners.
 
-Digital dome is a fast, minimal web application firewall that uses request information to protect a site against AI scanners.  It hosts several configurable rules, along with sensible, aggressive defaults.
+Digital dome is a fast, minimal web application firewall that uses request information to protect a site against AI scanners.  It hosts several configurable rules, along with sensible (if aggressive) defaults.
 
 ## Quickstart
 
@@ -158,4 +158,4 @@ Digital Dome is a solid defense against many AI scanners and malicious bots.  Bu
 
 ## Pull Requests Welcome
 
-The battle agains rampant AIs is ongoing, and this module will require constant upkeep to stay current. I will happily accept any and all experience reports, use cases, and contributions that will make Digital Dome better.  If you have an idea for making Digital Dome better, [file an issue](https://github.com/benpate/digital-dome/issues) or [send in a pull request](https://github.com/benpate/digital-dome/pulls).  We're all in this together! ✨
+The battle against rampant AIs is ongoing, and this module will require constant upkeep to stay current. I will happily accept any and all experience reports, use cases, and contributions that will make Digital Dome better.  If you have an idea for making Digital Dome better, [file an issue](https://github.com/benpate/digital-dome/issues) or [send in a pull request](https://github.com/benpate/digital-dome/pulls).  We're all in this together! ✨
