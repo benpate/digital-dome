@@ -3,7 +3,7 @@ module github.com/benpate/digital-dome
 go 1.24.0
 
 require (
-	github.com/benpate/data v0.31.0
+	github.com/benpate/data v0.31.1
 	github.com/benpate/derp v0.34.0
 	github.com/benpate/domain v0.2.9
 	github.com/cloudflare/ahocorasick v0.0.0-20240916140611-054963ec9396
@@ -13,7 +13,7 @@ require (
 )
 
 require (
-	github.com/benpate/exp v0.8.6 // indirect
+	github.com/benpate/exp v0.8.7 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dolthub/maphash v0.1.0 // indirect
 	github.com/gammazero/deque v1.1.0 // indirect
