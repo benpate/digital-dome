@@ -1,11 +1,11 @@
-github.com/benpate/data v0.31.1 h1:xdXbGk40XjQtqj7fSlbawa932fnB5BlM7sbH/+++LsY=
-github.com/benpate/data v0.31.1/go.mod h1:DSmTvZBHiEPm/qDTQranfLhvbmswM7d8QVgac6oBd44=
+github.com/benpate/data v0.31.2 h1:7qpNF0nmY06l2Q6E68MIY5R3h45iBAAczW9K979Sy24=
+github.com/benpate/data v0.31.2/go.mod h1:oNCV05ms3PJJyTaa6Ie3Bwh8mHAKJO1Yg6SuoUcAwnU=
 github.com/benpate/derp v0.34.0 h1:Eg54jS1g6IRfdUHVCm3Fp77UsqEPwzHbc8losID1HwI=
 github.com/benpate/derp v0.34.0/go.mod h1:eWyOubqTrcUKVPnBoQBw9J9GdpCxupkMO56mGGvjCtI=
 github.com/benpate/domain v0.2.9 h1:2LLxNtXG9cukk3uTR83xDS+b47EQKT4rujZQNW4LmSE=
 github.com/benpate/domain v0.2.9/go.mod h1:L4izRt2ma1OJXXtN90NqC4IvBJScyG7WzVCm/QzSYcc=
-github.com/benpate/exp v0.8.7 h1:uYhBl0nin23tvGi5r/ki9bf7v4mulz9LKLdlIb3g3U8=
-github.com/benpate/exp v0.8.7/go.mod h1:OPDLAVhPZvz/G43bX3JFAEP02OTIRvZNwNRduV44RoU=
+github.com/benpate/exp v0.9.0 h1:rlYLchy1u4ChQ9oYFi4zOQAKb+yRsrvMivcrcF18irI=
+github.com/benpate/exp v0.9.0/go.mod h1:OPDLAVhPZvz/G43bX3JFAEP02OTIRvZNwNRduV44RoU=
 github.com/cloudflare/ahocorasick v0.0.0-20240916140611-054963ec9396 h1:W2HK1IdCnCGuLUeyizSCkwvBjdj0ZL7mxnJYQ3poyzI=
 github.com/cloudflare/ahocorasick v0.0.0-20240916140611-054963ec9396/go.mod h1:tGWUZLZp9ajsxUOnHmFFLnqnlKXsCn6GReG4jAD59H0=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
@@ -13,8 +13,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dolthub/maphash v0.1.0 h1:bsQ7JsF4FkkWyrP3oCnFJgrCUAFbFf3kOl4L/QxPDyQ=
 github.com/dolthub/maphash v0.1.0/go.mod h1:gkg4Ch4CdCDu5h6PMriVLawB7koZ+5ijb9puGMV50a4=
-github.com/gammazero/deque v1.1.0 h1:OyiyReBbnEG2PP0Bnv1AASLIYvyKqIFN5xfl1t8oGLo=
-github.com/gammazero/deque v1.1.0/go.mod h1:JVrR+Bj1NMQbPnYclvDlvSX0nVGReLrQZ0aUMuWLctg=
+github.com/gammazero/deque v1.2.0 h1:scEFO8Uidhw6KDU5qg1HA5fYwM0+us2qdeJqm43bitU=
+github.com/gammazero/deque v1.2.0/go.mod h1:JVrR+Bj1NMQbPnYclvDlvSX0nVGReLrQZ0aUMuWLctg=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/pretty v0.3.1/go.mod h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk=
 github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=
@@ -44,8 +44,8 @@ golang.org/x/crypto v0.43.0/go.mod h1:BFbav4mRNlXJL4wNeejLpWxB7wMbc79PdRGhWKncxR
 golang.org/x/net v0.46.0 h1:giFlY12I07fugqwPuWJi68oOnpfqFnJIJzaIIm2JVV4=
 golang.org/x/net v0.46.0/go.mod h1:Q9BGdFy1y4nkUwiLvT5qtyhAnEHgnQ/zd8PfU6nc210=
 golang.org/x/sys v0.6.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
-golang.org/x/sys v0.37.0 h1:fdNQudmxPjkdUTPnLn5mdQv7Zwvbvpaxqs831goi9kQ=
-golang.org/x/sys v0.37.0/go.mod h1:OgkHotnGiDImocRcuBABYBEXf8A9a87e/uXjp9XT3ks=
+golang.org/x/sys v0.38.0 h1:3yZWxaJjBmCWXqhN1qh02AkOnCQ1poK6oF+a7xWL6Gc=
+golang.org/x/sys v0.38.0/go.mod h1:OgkHotnGiDImocRcuBABYBEXf8A9a87e/uXjp9XT3ks=
 golang.org/x/text v0.30.0 h1:yznKA/E9zq54KzlzBEAWn1NXSQ8DIp/NYMy88xJjl4k=
 golang.org/x/text v0.30.0/go.mod h1:yDdHFIX9t+tORqspjENWgzaCVXgk0yYnYuSZ8UzzBVM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
