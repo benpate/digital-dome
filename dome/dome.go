@@ -110,7 +110,7 @@ func (d *Dome) HandleError(request *http.Request, err error) error {
 			record := Request{
 				UserAgent:  request.Header.Get("User-Agent"),
 				IPAddress:  realIPAddress(request),
-				URL:        domaintools.Hostname(request) + request.URL.RequestURI(),
+				URL:        domaintools.TrueHostname(request) + request.URL.RequestURI(),
 				Method:     request.Method,
 				StatusCode: statusCode,
 				StatusText: http.StatusText(statusCode),
