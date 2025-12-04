@@ -9,6 +9,17 @@ package dome
 // https://www.foundationwebdev.com/2023/11/which-web-crawlers-are-associated-with-ai-crawlers/
 
 var KnownAIBots []string = []string{
+
+	// Bots we know about but are going to allow...
+	// "FacebookBot", //
+
+	// https://developers.google.com/crawling/docs/crawlers-fetchers/google-common-crawlers
+	// "Googlebot",
+	// "Googlebot-Image"
+	// "Googlebot-Video"
+	// "Googlebot-News"
+	// "Storebot-Google"
+
 	"Amazonbot",
 	"anthropic-ai",
 	"AdsBot-Google",
@@ -26,7 +37,6 @@ var KnownAIBots []string = []string{
 	"cohere-ai",
 	"DataForSeoBot",
 	"Diffbot",
-	"FacebookBot",
 	"FacebookExternalHit",
 	"FriendlyCrawler",
 	"Google-CloudVertexBot",
