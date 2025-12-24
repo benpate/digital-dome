@@ -78,8 +78,7 @@ func (dome *Dome) VerifyRequest(request *http.Request) error {
 
 	// Try to block request based on the URL/Path
 	if dome.blockedPaths != nil {
-		path := request.URL.Path
-		if dome.blockedPaths.Contains([]byte(path)) {
+		if path := request.URL.Path; dome.blockedPaths.Contains([]byte(path)) {
 			return derp.ForbiddenError(location, "Path is blocked", path)
 		}
 	}
@@ -130,8 +129,7 @@ func (d *Dome) HandleError(request *http.Request, err error) error {
 
 	} else if d.softBlockedPaths != nil {
 		if derp.IsClientError(err) {
-			path := request.URL.Path
-			if d.softBlockedPaths.Contains([]byte(path)) {
+			if path := request.URL.Path; d.softBlockedPaths.Contains([]byte(path)) {
 				err = derp.ForbiddenError(location, "Path is blocked", path)
 				block = true
 			}
