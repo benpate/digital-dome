@@ -60,26 +60,26 @@ func (dome *Dome) VerifyRequest(request *http.Request) error {
 
 	// If this IP address has caused more than 5 qualifying errors (since the TTL) then block this request.
 	if count, _ := dome.blockedIPs.Get(realIPAddress(request)); count > 5 {
-		return derp.ForbiddenError(location, "Blocked due to previous scanning activity.  Try again later.", request.RemoteAddr)
+		return derp.Forbidden(location, "Blocked due to previous scanning activity.  Try again later.", request.RemoteAddr)
 	}
 
 	// Try to block request based on the User-Agent
 	userAgent := request.Header.Get("User-Agent")
 
 	if userAgent == "" {
-		return derp.ForbiddenError(location, "User Agent must not be empty")
+		return derp.Forbidden(location, "User Agent must not be empty")
 	}
 
 	if dome.blockedUserAgents != nil {
 		if dome.blockedUserAgents.Contains([]byte(userAgent)) {
-			return derp.ForbiddenError(location, "User Agent is blocked", userAgent)
+			return derp.Forbidden(location, "User Agent is blocked", userAgent)
 		}
 	}
 
 	// Try to block request based on the URL/Path
 	if dome.blockedPaths != nil {
 		if path := request.URL.Path; dome.blockedPaths.Contains([]byte(path)) {
-			return derp.ForbiddenError(location, "Path is blocked", path)
+			return derp.Forbidden(location, "Path is blocked", path)
 		}
 	}
 
@@ -130,7 +130,7 @@ func (d *Dome) HandleError(request *http.Request, err error) error {
 	} else if d.softBlockedPaths != nil {
 		if derp.IsClientError(err) {
 			if path := request.URL.Path; d.softBlockedPaths.Contains([]byte(path)) {
-				err = derp.ForbiddenError(location, "Path is blocked", path)
+				err = derp.Forbidden(location, "Path is blocked", path)
 				block = true
 			}
 		}
