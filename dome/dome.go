@@ -130,7 +130,7 @@ func (d *Dome) HandleError(request *http.Request, err error) error {
 	} else if d.softBlockedPaths != nil {
 		if derp.IsClientError(err) {
 			if path := request.URL.Path; d.softBlockedPaths.Contains([]byte(path)) {
-				err = derp.Forbidden(location, "Path is blocked", path)
+				err = derp.Forbidden(location, "Path is blocked", path, err)
 				block = true
 			}
 		}
