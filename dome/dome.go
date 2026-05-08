@@ -113,7 +113,7 @@ func (d *Dome) HandleError(request *http.Request, err error) error {
 				Method:     request.Method,
 				StatusCode: statusCode,
 				StatusText: http.StatusText(statusCode),
-				Error:      err,
+				// Error:      err,
 			}
 
 			if err := d.logDatabase.Save(&record, ""); err != nil {
