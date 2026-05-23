@@ -73,7 +73,7 @@ func LogDatabase(collection data.Collection) Option {
  * Block Handling
  ******************************************/
 
-// BlockStatusCodes configures Dome to log requests with specific error codes
+// BlockStatusCodes configures Dome to block requests with specific error codes
 func BlockStatusCodes(statusCodes ...int) Option {
 	return func(d *Dome) {
 		d.blockStatusCodes = statusCodes
