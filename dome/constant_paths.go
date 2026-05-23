@@ -21,6 +21,10 @@ var BlockedPaths = []string{
 	"/php-cgi/", // PHP directories
 	"/phpinfo",  // Misc PHP
 
+	"/graphql",     // GraphQL directory
+	"/api/graphql", // GraphQL directory
+	"/api/gql",     // GraphQL directory
+
 	"/s3cmd",                   // s3cmd configuration file
 	"/aspera/faspex",           // CVE-2024-45096 (Aspera Faspex)
 	"/config.json",             // JSON configuration file
@@ -29,6 +33,10 @@ var BlockedPaths = []string{
 	"/net/controller.ashx",     // .NET controller
 	"/sftp-config.json",        // CVE-2024-20262 (Cisco IOS Secure Copy)
 	"/utility/ueditor",         // CVE-2023-2245 (Hansun CMS)
+	"vita/env",                 // seen in scan logs
+	"vite/env",                 // seen in scan logs
+	"vite.config.js",           // Vite configuration file
+	"/webpack.config.js",       // Webpack configuration file
 	"/wp-admin",                // WordPress admin pages
 	"/wp-content",              // WordPress content directory
 	"/wp-includes",             // WordPress includes directory
@@ -58,6 +66,7 @@ var SuspiciousPaths = []string{
 	"/blog",
 	"/ckeditor",
 	"/config",
+	".config",
 	"/credentials",
 	"/database.sql",
 	"/db",
@@ -91,6 +100,7 @@ var SuspiciousPaths = []string{
 	"/Ueditor",
 	"/ueditor",
 	"/wap",
+	"/win.ini",
 	"/wordpress",
 	"/workflow",
 	"/wp",
