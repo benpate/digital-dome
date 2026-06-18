@@ -130,8 +130,8 @@ func (d *Dome) HandleError(request *http.Request, err error) error {
 				// Error:      err,
 			}
 
-			if err := d.logDatabase.Save(&record, ""); err != nil {
-				derp.Report(derp.Wrap(err, location, "Unable to save log record"))
+			if saveErr := d.logDatabase.Save(&record, ""); saveErr != nil {
+				derp.Report(derp.Wrap(saveErr, location, "Unable to save log record"))
 			}
 		}
 	}
