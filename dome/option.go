@@ -17,7 +17,7 @@ func BlockKnownAIBots() Option {
 	return BlockUserAgents(KnownAIBots...)
 }
 
-// BlockAllBadBots is a dome.Option that blocks all known bad bots.
+// BlockKnownBadBots is a dome.Option that blocks all known bad bots.
 func BlockKnownBadBots() Option {
 	return BlockUserAgents(AllKnownBadBots...)
 }
@@ -33,9 +33,9 @@ func BlockUserAgents(blockedAgents ...string) Option {
  * Blocking Known Paths
  ******************************************/
 
-// SoftBlockpaths is a dome.Option that soft blocks the provided paths.
+// SoftBlockPaths is a dome.Option that soft blocks the provided paths.
 // This means that the requests are allowed, but will count towards a
-// client's score if the request returns a 404 error.
+// client's score if the request returns a client (4xx) error.
 func SoftBlockPaths(paths ...string) Option {
 	return func(d *Dome) {
 		d.softBlockedPaths = ahocorasick.NewStringMatcher(paths)

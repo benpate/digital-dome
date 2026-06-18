@@ -67,7 +67,8 @@ func (dome *Dome) With(options ...Option) {
 	}
 }
 
-// VerifyHeader verifies the returns TRUE if the provided user agent is blocked (not allowed).
+// VerifyRequest returns an error if the request should be blocked (a previously
+// flagged IP, an empty or blocked User-Agent, or a blocked path), or nil if it is allowed.
 func (dome *Dome) VerifyRequest(request *http.Request) error {
 
 	const location = "dome.VerifyRequest"
