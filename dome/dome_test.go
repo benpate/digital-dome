@@ -117,7 +117,8 @@ func TestHandleError_CustomResolverDeterminesBlockedIP(t *testing.T) {
 	t.Cleanup(dome.Close)
 
 	request := newTestRequest("GET", "/welcome", "GoodBrowser", "1.2.3.4:5678")
-	dome.HandleError(request, derp.Forbidden("test", "forbidden")) // 403 blocks
+	result := dome.HandleError(request, derp.Forbidden("test", "forbidden")) // 403 blocks
+	require.Error(t, result)
 
 	count, ok := dome.blockedIPs.Get("9.9.9.9")
 	require.True(t, ok)
@@ -273,7 +274,8 @@ func TestHandleError_DoesNotLogUnmatchedStatusCode(t *testing.T) {
 	request := newTestRequest("GET", "/oops", "GoodBrowser", "1.2.3.4:5678")
 	err := derp.Internal("test", "boom") // 500, not in logStatusCodes
 
-	dome.HandleError(request, err)
+	result := dome.HandleError(request, err)
+	require.Error(t, result)
 	require.Empty(t, collection.saved)
 }
 
@@ -285,7 +287,8 @@ func TestHandleError_BlocksOnBlockStatusCode(t *testing.T) {
 	request := newTestRequest("GET", "/welcome", "GoodBrowser", "1.2.3.4:5678")
 	err := derp.Forbidden("test", "forbidden") // 403
 
-	dome.HandleError(request, err)
+	result := dome.HandleError(request, err)
+	require.Error(t, result)
 
 	// The IP address should now have an error count of 1.
 	count, ok := dome.blockedIPs.Get("1.2.3.4")
@@ -330,7 +333,8 @@ func TestHandleError_SoftBlockedPathServerErrorDoesNotBlock(t *testing.T) {
 	request := newTestRequest("GET", "/phpunit", "GoodBrowser", "1.2.3.4:5678")
 	err := derp.Internal("test", "boom") // 500
 
-	dome.HandleError(request, err)
+	result := dome.HandleError(request, err)
+	require.Error(t, result)
 
 	_, ok := dome.blockedIPs.Get("1.2.3.4")
 	require.False(t, ok)
@@ -347,7 +351,8 @@ func TestHandleError_IncrementsExistingCount(t *testing.T) {
 	request := newTestRequest("GET", "/welcome", "GoodBrowser", "1.2.3.4:5678")
 	err := derp.Forbidden("test", "forbidden")
 
-	dome.HandleError(request, err)
+	result := dome.HandleError(request, err)
+	require.Error(t, result)
 
 	count, ok := dome.blockedIPs.Get("1.2.3.4")
 	require.True(t, ok)
@@ -364,7 +369,8 @@ func TestHandleError_NoBlockForNonMatchingError(t *testing.T) {
 	request := newTestRequest("GET", "/welcome", "GoodBrowser", "1.2.3.4:5678")
 	err := derp.Internal("test", "boom")
 
-	dome.HandleError(request, err)
+	result := dome.HandleError(request, err)
+	require.Error(t, result)
 
 	_, ok := dome.blockedIPs.Get("1.2.3.4")
 	require.False(t, ok)
