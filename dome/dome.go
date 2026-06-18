@@ -31,7 +31,7 @@ type Dome struct {
 // resolver is a programming error and causes New to panic.
 //
 // Callers not behind a trusted proxy can pass the built-in RemoteAddr resolver.
-func New(clientIP ClientIPResolver, options ...Option) Dome {
+func New(clientIP ClientIPResolver, options ...Option) *Dome {
 
 	if clientIP == nil {
 		panic("dome.New: clientIP resolver is required")
@@ -53,7 +53,7 @@ func New(clientIP ClientIPResolver, options ...Option) Dome {
 
 	// Custom settings...
 	result.With(options...)
-	return result
+	return &result
 }
 
 // With applies the provided options to the Dome object.

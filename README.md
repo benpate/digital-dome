@@ -20,8 +20,8 @@ import github.com/benpate/digital-dome/dome
 import github.com/benpate/digital-dome/dome4echo
 
 domeConfig := dome.New(dome.RemoteAddr) // Create a new digital dome (using sensible defaults)
-middleware := dome4echo.New(&domeConfig)   // Create echo middleware
-e.Pre(middleware)                          // Use the middleware
+middleware := dome4echo.New(domeConfig)  // Create echo middleware
+e.Pre(middleware)                        // Use the middleware
 
 // easy peasy.
 ```
