@@ -162,13 +162,37 @@ func TestCreateCache(t *testing.T) {
 	require.Equal(t, 16, cache.Capacity())
 }
 
-// NOTE: createCache clamps negative capacities to zero, but the underlying
-// otter builder panics when asked to build a cache with capacity 0. This means
-// createCache(0) and createCache(<0) both panic rather than returning an empty
-// cache. This appears to be a latent bug in the source (the clamp should likely
-// be `capacity < 1`), so we deliberately do not exercise the zero/negative path
-// here. The reachable callers (New uses 1024; BlockCache requires a changed,
-// positive capacity) never trigger it in normal use.
+// The underlying otter builder panics when asked to build a cache with a
+// capacity less than 1, so createCache clamps zero and negative values up to a
+// minimum of 1. These tests deliberately pass invalid capacities to prove that
+// createCache does not panic and returns a usable cache.
+func TestCreateCache_ZeroCapacity(t *testing.T) {
+
+	cache := createCache(0)
+	t.Cleanup(cache.Close)
+
+	require.Equal(t, 1, cache.Capacity())
+}
+
+func TestCreateCache_NegativeCapacity(t *testing.T) {
+
+	cache := createCache(-100)
+	t.Cleanup(cache.Close)
+
+	require.Equal(t, 1, cache.Capacity())
+}
+
+func TestBlockCache_ZeroCapacityDoesNotPanic(t *testing.T) {
+
+	// Exercise the public path: a caller passing BlockCache(0) must not panic.
+	dome := New(RealIPAddress)
+	t.Cleanup(dome.Close)
+
+	require.NotPanics(t, func() {
+		dome.With(BlockCache(0))
+	})
+	require.Equal(t, 1, dome.blockedIPs.Capacity())
+}
 
 /******************************************
  * getTTL

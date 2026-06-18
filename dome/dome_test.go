@@ -25,7 +25,7 @@ func TestUserAgents(t *testing.T) {
 			},
 		}
 
-		result := dome.VerifyRequest(request) // nolint:scopeguard
+		result := dome.VerifyRequest(request)
 
 		if allowed {
 			require.Nil(t, result)

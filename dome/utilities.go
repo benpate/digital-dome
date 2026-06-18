@@ -69,9 +69,11 @@ func RealIPAddress(request *http.Request) string {
 // createCache creates an Otter cache with the provided capacity and variable TTL.
 func createCache(capacity int) otter.CacheWithVariableTTL[string, int] {
 
-	// Don't allow negative cache sizes
-	if capacity < 0 {
-		capacity = 0
+	// Don't allow zero or negative cache sizes. The underlying otter builder
+	// panics when asked to build a cache with a capacity less than 1, so clamp
+	// any such value up to a minimum of 1.
+	if capacity < 1 {
+		capacity = 1
 	}
 
 	// Create a new cache with the correct capacity
