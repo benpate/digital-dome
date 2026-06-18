@@ -11,7 +11,6 @@ type Request struct {
 	Method     string `bson:"method"`
 	StatusCode int    `bson:"statusCode"`
 	StatusText string `bson:"statusText"`
-	Error      error  `bson:"error"`
 
 	journal.Journal `bson:",inline"`
 }
