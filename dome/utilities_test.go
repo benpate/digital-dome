@@ -219,22 +219,3 @@ func TestGetTTL(t *testing.T) {
 	verify(60, 2*time.Hour)
 	verify(1000, 2*time.Hour)
 }
-
-/******************************************
- * sliceContains
- ******************************************/
-
-func TestSliceContains(t *testing.T) {
-
-	assert.True(t, sliceContains([]int{1, 2, 3}, 2))
-	assert.True(t, sliceContains([]int{1, 2, 3}, 1))
-	assert.True(t, sliceContains([]int{1, 2, 3}, 3))
-
-	assert.False(t, sliceContains([]int{1, 2, 3}, 4))
-	assert.False(t, sliceContains([]int{}, 1))
-	assert.False(t, sliceContains(nil, 1))
-
-	// sliceContains is generic, so confirm it works with strings too.
-	assert.True(t, sliceContains([]string{"a", "b"}, "b"))
-	assert.False(t, sliceContains([]string{"a", "b"}, "c"))
-}

@@ -104,13 +104,3 @@ func getTTL(count int) time.Duration {
 		return 2 * time.Hour
 	}
 }
-
-// sliceContains returns TRUE if the provided slice contains the provided value.
-func sliceContains[T comparable](slice []T, value T) bool {
-	for _, item := range slice {
-		if item == value {
-			return true
-		}
-	}
-	return false
-}

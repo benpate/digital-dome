@@ -2,6 +2,7 @@ package dome
 
 import (
 	"net/http"
+	"slices"
 
 	"github.com/benpate/data"
 	"github.com/benpate/derp"
@@ -119,7 +120,7 @@ func (d *Dome) HandleError(request *http.Request, err error) error {
 	if d.logDatabase != nil {
 
 		// If this is a status code that we want to log, then log it.
-		if sliceContains(d.logStatusCodes, statusCode) {
+		if slices.Contains(d.logStatusCodes, statusCode) {
 
 			record := Request{
 				UserAgent:  request.Header.Get("User-Agent"),
@@ -138,7 +139,7 @@ func (d *Dome) HandleError(request *http.Request, err error) error {
 
 	block := false
 
-	if sliceContains(d.blockStatusCodes, statusCode) {
+	if slices.Contains(d.blockStatusCodes, statusCode) {
 		block = true
 
 	} else if d.softBlockedPaths != nil {
