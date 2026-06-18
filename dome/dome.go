@@ -14,11 +14,6 @@ import (
 // https://blog.gopheracademy.com/advent-2014/string-matching/
 // https://github.com/cloudflare/ahocorasick
 
-// ClientIPResolver returns the "real" client IP address for an HTTP request.
-// Callers provide their own implementation (for example, one backed by a
-// trusted-proxy strategy) so that Dome blocks the correct address.
-type ClientIPResolver func(*http.Request) string
-
 // Dome object contains the matcher that is used to identify blocked user agents.
 type Dome struct {
 	clientIP          ClientIPResolver
