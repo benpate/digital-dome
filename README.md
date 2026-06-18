@@ -52,7 +52,6 @@ Claude-Web
 cohere-ai
 DataForSeoBot
 Diffbot
-FacebookBot
 FacebookExternalHit
 FriendlyCrawler
 Google-CloudVertexBot
