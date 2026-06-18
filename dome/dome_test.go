@@ -25,13 +25,9 @@ func TestUserAgents(t *testing.T) {
 			},
 		}
 
-		result := dome.VerifyRequest(request)
-
-		if allowed {
-			require.Nil(t, result)
-		} else {
-			require.NotNil(t, result)
-		}
+		// VerifyRequest returns a nil error exactly when the request is allowed.
+		err := dome.VerifyRequest(request)
+		require.Equal(t, allowed, err == nil)
 	}
 
 	verify("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0.1 Safari/605.1.15", true)
