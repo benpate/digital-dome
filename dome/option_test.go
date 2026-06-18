@@ -53,7 +53,7 @@ func (c *fakeCollection) Iterator(exp.Expression, ...option.Option) (data.Iterat
 
 func TestBlockUserAgents(t *testing.T) {
 
-	dome := New(BlockUserAgents("EvilBot", "BadCrawler"))
+	dome := New(RealIPAddress, BlockUserAgents("EvilBot", "BadCrawler"))
 	t.Cleanup(dome.Close)
 
 	require.NotNil(t, dome.blockedUserAgents)
@@ -64,7 +64,7 @@ func TestBlockUserAgents(t *testing.T) {
 
 func TestBlockKnownAIBots(t *testing.T) {
 
-	dome := New(BlockKnownAIBots())
+	dome := New(RealIPAddress, BlockKnownAIBots())
 	t.Cleanup(dome.Close)
 
 	require.NotNil(t, dome.blockedUserAgents)
@@ -74,7 +74,7 @@ func TestBlockKnownAIBots(t *testing.T) {
 
 func TestBlockKnownBadBots(t *testing.T) {
 
-	dome := New(BlockKnownBadBots())
+	dome := New(RealIPAddress, BlockKnownBadBots())
 	t.Cleanup(dome.Close)
 
 	require.NotNil(t, dome.blockedUserAgents)
@@ -92,7 +92,7 @@ func TestBlockKnownBadBots(t *testing.T) {
 
 func TestBlockPaths(t *testing.T) {
 
-	dome := New(BlockPaths("/secret", "/admin"))
+	dome := New(RealIPAddress, BlockPaths("/secret", "/admin"))
 	t.Cleanup(dome.Close)
 
 	require.NotNil(t, dome.blockedPaths)
@@ -103,7 +103,7 @@ func TestBlockPaths(t *testing.T) {
 
 func TestSoftBlockPaths(t *testing.T) {
 
-	dome := New(SoftBlockPaths("/maybe", "/suspicious"))
+	dome := New(RealIPAddress, SoftBlockPaths("/maybe", "/suspicious"))
 	t.Cleanup(dome.Close)
 
 	require.NotNil(t, dome.softBlockedPaths)
@@ -118,7 +118,7 @@ func TestSoftBlockPaths(t *testing.T) {
 
 func TestLogStatusCodes(t *testing.T) {
 
-	dome := New(LogStatusCodes(404, 410))
+	dome := New(RealIPAddress, LogStatusCodes(404, 410))
 	t.Cleanup(dome.Close)
 
 	require.Equal(t, []int{404, 410}, dome.logStatusCodes)
@@ -126,7 +126,7 @@ func TestLogStatusCodes(t *testing.T) {
 
 func TestBlockStatusCodes(t *testing.T) {
 
-	dome := New(BlockStatusCodes(403, 429))
+	dome := New(RealIPAddress, BlockStatusCodes(403, 429))
 	t.Cleanup(dome.Close)
 
 	require.Equal(t, []int{403, 429}, dome.blockStatusCodes)
@@ -139,7 +139,7 @@ func TestBlockStatusCodes(t *testing.T) {
 func TestLogDatabase(t *testing.T) {
 
 	collection := &fakeCollection{}
-	dome := New(LogDatabase(collection))
+	dome := New(RealIPAddress, LogDatabase(collection))
 	t.Cleanup(dome.Close)
 
 	require.NotNil(t, dome.logDatabase)
@@ -152,7 +152,7 @@ func TestLogDatabase(t *testing.T) {
 
 func TestBlockCache_ChangesCapacity(t *testing.T) {
 
-	dome := New() // default capacity is 1024
+	dome := New(RealIPAddress) // default capacity is 1024
 	t.Cleanup(dome.Close)
 	require.Equal(t, 1024, dome.blockedIPs.Capacity())
 
@@ -162,7 +162,7 @@ func TestBlockCache_ChangesCapacity(t *testing.T) {
 
 func TestBlockCache_SameCapacityIsNoOp(t *testing.T) {
 
-	dome := New() // default capacity is 1024
+	dome := New(RealIPAddress) // default capacity is 1024
 	t.Cleanup(dome.Close)
 
 	// Requesting the same capacity should leave the cache untouched (no rebuild).
@@ -176,7 +176,7 @@ func TestBlockCache_SameCapacityIsNoOp(t *testing.T) {
 
 func TestWith_AppliesMultipleOptions(t *testing.T) {
 
-	dome := New()
+	dome := New(RealIPAddress)
 	t.Cleanup(dome.Close)
 
 	dome.With(
@@ -192,7 +192,7 @@ func TestWith_AppliesMultipleOptions(t *testing.T) {
 
 func TestWith_NoOptions(t *testing.T) {
 
-	dome := New()
+	dome := New(RealIPAddress)
 	t.Cleanup(dome.Close)
 
 	// Applying zero options should not panic or alter the defaults.

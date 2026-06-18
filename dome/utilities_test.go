@@ -10,13 +10,13 @@ import (
 )
 
 /******************************************
- * realIPAddress
+ * RealIPAddress
  ******************************************/
 
 func TestRealIPAddress(t *testing.T) {
 
 	// Closure builds a request with the provided headers and remote address,
-	// then confirms that realIPAddress returns the expected value.
+	// then confirms that RealIPAddress returns the expected value.
 	verify := func(remoteAddr string, headers map[string]string, expected string) {
 		request := &http.Request{
 			RemoteAddr: remoteAddr,
@@ -27,7 +27,7 @@ func TestRealIPAddress(t *testing.T) {
 			request.Header.Set(key, value)
 		}
 
-		assert.Equal(t, expected, realIPAddress(request))
+		assert.Equal(t, expected, RealIPAddress(request))
 	}
 
 	// CF-Connecting-IP has the highest priority.
@@ -69,38 +69,38 @@ func TestRealIPAddress_ForwardedForSkipsLocalhost(t *testing.T) {
 	}
 	request.Header.Set("X-Forwarded-For", "127.0.0.1, 192.168.1.1, 8.8.8.8")
 
-	assert.Equal(t, "8.8.8.8", realIPAddress(request))
+	assert.Equal(t, "8.8.8.8", RealIPAddress(request))
 }
 
 func TestRealIPAddress_ForwardedForAllLocalhost(t *testing.T) {
 
 	// When every X-Forwarded-For entry is recognized as localhost/private, the
 	// loop falls through and the next available source (X-Real-Ip here) is used.
-	// NOTE: domain.IsLocalhost only recognizes loopback and RFC-1918 IPv4 ranges
-	// (127.x, 10.x, 172.16.x, 192.168.x), not IPv6 (::1), so we use IPv4 here.
+	// uri.IsLocalHostname recognizes IPv4 loopback/RFC-1918 ranges as well as
+	// IPv6 loopback (::1) and RFC-4193 unique-local addresses.
 	request := &http.Request{
 		RemoteAddr: "10.0.0.1:1234",
 		Header:     http.Header{},
 	}
-	request.Header.Set("X-Forwarded-For", "127.0.0.1, 10.0.0.5, 192.168.1.1")
+	request.Header.Set("X-Forwarded-For", "127.0.0.1, ::1, 10.0.0.5, 192.168.1.1")
 	request.Header.Set("X-Real-Ip", "9.9.9.9")
 
-	assert.Equal(t, "9.9.9.9", realIPAddress(request))
+	assert.Equal(t, "9.9.9.9", RealIPAddress(request))
 }
 
 func TestRealIPAddress_BadRemoteAddr(t *testing.T) {
 
 	// A RemoteAddr without a port cannot be split, so SplitHostPort fails and
-	// realIPAddress returns the empty string.
+	// RealIPAddress returns the empty string.
 	request := &http.Request{
 		RemoteAddr: "not-a-valid-host-port",
 		Header:     http.Header{},
 	}
 
-	assert.Equal(t, "", realIPAddress(request))
+	assert.Equal(t, "", RealIPAddress(request))
 }
 
-// FuzzRealIPAddress confirms that realIPAddress never panics, regardless of the
+// FuzzRealIPAddress confirms that RealIPAddress never panics, regardless of the
 // (untrusted) header and remote-address values it is given. It parses attacker-
 // controlled input, so robustness against malformed values matters.
 func FuzzRealIPAddress(f *testing.F) {
@@ -121,8 +121,33 @@ func FuzzRealIPAddress(f *testing.F) {
 		request.Header.Set("X-Real-Ip", realIP)
 
 		// We only require that the call returns without panicking.
-		_ = realIPAddress(request)
+		_ = RealIPAddress(request)
 	})
+}
+
+/******************************************
+ * TrueHostname
+ ******************************************/
+
+func TestTrueHostname(t *testing.T) {
+
+	// X-Forwarded-Host (set by a proxy) takes priority over the Host field.
+	request := &http.Request{
+		Host:   "internal.example.com",
+		Header: http.Header{},
+	}
+	request.Header.Set("X-Forwarded-Host", "public.example.com")
+	assert.Equal(t, "public.example.com", TrueHostname(request))
+}
+
+func TestTrueHostname_FallsBackToHost(t *testing.T) {
+
+	// When X-Forwarded-Host is absent, the Host field is used.
+	request := &http.Request{
+		Host:   "example.com",
+		Header: http.Header{},
+	}
+	assert.Equal(t, "example.com", TrueHostname(request))
 }
 
 /******************************************

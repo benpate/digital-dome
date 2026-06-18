@@ -5,7 +5,6 @@ import (
 
 	"github.com/benpate/data"
 	"github.com/benpate/derp"
-	domaintools "github.com/benpate/domain"
 	"github.com/cloudflare/ahocorasick"
 	"github.com/maypok86/otter"
 )
@@ -14,8 +13,14 @@ import (
 // https://blog.gopheracademy.com/advent-2014/string-matching/
 // https://github.com/cloudflare/ahocorasick
 
+// ClientIPResolver returns the "real" client IP address for an HTTP request.
+// Callers provide their own implementation (for example, one backed by a
+// trusted-proxy strategy) so that Dome blocks the correct address.
+type ClientIPResolver func(*http.Request) string
+
 // Dome object contains the matcher that is used to identify blocked user agents.
 type Dome struct {
+	clientIP          ClientIPResolver
 	blockedUserAgents *ahocorasick.Matcher
 	blockedPaths      *ahocorasick.Matcher
 	softBlockedPaths  *ahocorasick.Matcher
@@ -25,10 +30,19 @@ type Dome struct {
 	blockStatusCodes  []int
 }
 
-// New returns a fully initialized Dome object.
-func New(options ...Option) Dome {
+// New returns a fully initialized Dome object. The clientIP resolver is REQUIRED
+// and is used to determine the "real" IP address of each request. Passing a nil
+// resolver is a programming error and causes New to panic.
+//
+// Callers that want Dome's built-in header-based lookup can pass RealIPAddress.
+func New(clientIP ClientIPResolver, options ...Option) Dome {
+
+	if clientIP == nil {
+		panic("dome.New: clientIP resolver is required")
+	}
 
 	result := Dome{
+		clientIP:   clientIP,
 		blockedIPs: createCache(1024),
 	}
 
@@ -59,7 +73,7 @@ func (dome *Dome) VerifyRequest(request *http.Request) error {
 	const location = "dome.VerifyRequest"
 
 	// If this IP address has caused more than 5 qualifying errors (since the TTL) then block this request.
-	if count, _ := dome.blockedIPs.Get(realIPAddress(request)); count > 5 {
+	if count, _ := dome.blockedIPs.Get(dome.clientIP(request)); count > 5 {
 		return derp.Forbidden(location, "Blocked due to previous scanning activity.  Try again later.", request.RemoteAddr)
 	}
 
@@ -108,8 +122,8 @@ func (d *Dome) HandleError(request *http.Request, err error) error {
 
 			record := Request{
 				UserAgent:  request.Header.Get("User-Agent"),
-				IPAddress:  realIPAddress(request),
-				URL:        domaintools.TrueHostname(request) + request.URL.RequestURI(),
+				IPAddress:  d.clientIP(request),
+				URL:        TrueHostname(request) + request.URL.RequestURI(),
 				Method:     request.Method,
 				StatusCode: statusCode,
 				StatusText: http.StatusText(statusCode),
@@ -138,7 +152,7 @@ func (d *Dome) HandleError(request *http.Request, err error) error {
 
 	// Try to block this IP address based on the statusCode
 	if block {
-		remoteAddress := realIPAddress(request)          // get the real IP address (not some shifty, fake one)
+		remoteAddress := d.clientIP(request)             // get the real IP address (not some shifty, fake one)
 		errorCount, _ := d.blockedIPs.Get(remoteAddress) // get the existing error count
 		errorCount = errorCount + 1                      // increment
 		ttl := getTTL(errorCount)                        // calculate the TTL based on the number of errors in the queue

@@ -7,16 +7,32 @@ import (
 	"time"
 
 	"github.com/benpate/derp"
-	"github.com/benpate/domain"
+	"github.com/benpate/uri"
 	"github.com/maypok86/otter"
 )
 
 // Some notes on looking up real IP addresses:
 // https://adam-p.ca/blog/2022/03/x-forwarded-for/
 
-// realIPAddress returns the real IP address of the request,
+// TrueHostname returns the "true" hostname for a request, preferring the
+// X-Forwarded-Host header (set by proxies) over the request's Host header.
+func TrueHostname(request *http.Request) string {
+
+	// If this is a proxied request, we need to use the X-Forwarded-Host header
+	// instead of the Host header
+	if trueHost := request.Header.Get("X-Forwarded-Host"); trueHost != "" {
+		return trueHost
+	}
+
+	// Fallback to the Host header if X-Forwarded-Host is not present
+	return request.Host
+}
+
+// RealIPAddress returns the real IP address of the request,
 // taking into account X-Real-IP and X-Forwarded-For headers.
-func realIPAddress(request *http.Request) string {
+// It is the built-in ClientIPResolver, suitable for passing to New when the
+// caller has no trusted-proxy strategy of its own.
+func RealIPAddress(request *http.Request) string {
 
 	// Get IP address from CloudFlare (this is more trustworthy than other headers)
 	if cfConnectingIP := request.Header.Get("CF-Connecting-IP"); cfConnectingIP != "" {
@@ -34,7 +50,7 @@ func realIPAddress(request *http.Request) string {
 		// Scan for first non-local ip address
 		for _, ip := range strings.Split(forwardedFor, ",") {
 			ip = strings.TrimSpace(ip)
-			if !domain.IsLocalhost(ip) {
+			if !uri.IsLocalHostname(ip) {
 				return ip
 			}
 		}

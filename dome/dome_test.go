@@ -11,7 +11,7 @@ import (
 
 func TestUserAgents(t *testing.T) {
 
-	dome := New(BlockKnownBadBots())
+	dome := New(RealIPAddress, BlockKnownBadBots())
 	t.Cleanup(dome.Close)
 
 	verify := func(userAgent string, allowed bool) {
@@ -46,7 +46,7 @@ func TestUserAgents(t *testing.T) {
 
 func TestNew_Defaults(t *testing.T) {
 
-	dome := New()
+	dome := New(RealIPAddress)
 	t.Cleanup(dome.Close)
 
 	// New installs a default set of matchers and status codes.
@@ -60,11 +60,72 @@ func TestNew_Defaults(t *testing.T) {
 
 func TestNew_CustomOptionsOverrideDefaults(t *testing.T) {
 
-	dome := New(LogStatusCodes(500))
+	dome := New(RealIPAddress, LogStatusCodes(500))
 	t.Cleanup(dome.Close)
 
 	// A custom option supplied to New replaces the corresponding default.
 	require.Equal(t, []int{500}, dome.logStatusCodes)
+}
+
+func TestNew_NilResolverPanics(t *testing.T) {
+
+	// The clientIP resolver is required; passing nil is a programming error and
+	// must panic at construction rather than failing later on the first request.
+	require.PanicsWithValue(t, "dome.New: clientIP resolver is required", func() {
+		New(nil)
+	})
+}
+
+func TestNew_RealIPAddressResolver(t *testing.T) {
+
+	// Callers can opt into the built-in lookup by passing RealIPAddress. We
+	// confirm it is wired up by blocking a header-derived IP.
+	dome := New(RealIPAddress)
+	t.Cleanup(dome.Close)
+
+	// RealIPAddress prefers CF-Connecting-IP, so seed that address as blocked.
+	dome.blockedIPs.Set("5.6.7.8", 6, getTTL(6))
+
+	request := newTestRequest("GET", "/welcome", "GoodBrowser", "1.2.3.4:5678")
+	request.Header.Set("CF-Connecting-IP", "5.6.7.8")
+
+	require.NotNil(t, dome.VerifyRequest(request))
+}
+
+func TestNew_CustomResolverIsUsed(t *testing.T) {
+
+	// A custom resolver should override the built-in IP lookup entirely. Here
+	// the resolver always returns a fixed address, ignoring the request.
+	dome := New(func(*http.Request) string {
+		return "9.9.9.9"
+	})
+	t.Cleanup(dome.Close)
+
+	// Block the address the resolver returns (not the request's RemoteAddr).
+	dome.blockedIPs.Set("9.9.9.9", 6, getTTL(6))
+
+	request := newTestRequest("GET", "/welcome", "GoodBrowser", "1.2.3.4:5678")
+	require.NotNil(t, dome.VerifyRequest(request))
+}
+
+func TestHandleError_CustomResolverDeterminesBlockedIP(t *testing.T) {
+
+	// HandleError should record blocks against the resolver-supplied address.
+	dome := New(func(*http.Request) string {
+		return "9.9.9.9"
+	})
+	t.Cleanup(dome.Close)
+
+	request := newTestRequest("GET", "/welcome", "GoodBrowser", "1.2.3.4:5678")
+	dome.HandleError(request, derp.Forbidden("test", "forbidden")) // 403 blocks
+
+	count, ok := dome.blockedIPs.Get("9.9.9.9")
+	require.True(t, ok)
+	require.Equal(t, 1, count)
+
+	// The request's RemoteAddr should NOT have been blocked.
+	_, ok = dome.blockedIPs.Get("1.2.3.4")
+	require.False(t, ok)
 }
 
 /******************************************
@@ -73,7 +134,7 @@ func TestNew_CustomOptionsOverrideDefaults(t *testing.T) {
 
 func TestVerifyRequest_EmptyUserAgent(t *testing.T) {
 
-	dome := New()
+	dome := New(RealIPAddress)
 	t.Cleanup(dome.Close)
 
 	request := newTestRequest("GET", "/welcome", "", "1.2.3.4:5678")
@@ -85,7 +146,7 @@ func TestVerifyRequest_EmptyUserAgent(t *testing.T) {
 
 func TestVerifyRequest_BlockedPath(t *testing.T) {
 
-	dome := New()
+	dome := New(RealIPAddress)
 	t.Cleanup(dome.Close)
 
 	// /wp-admin is in the default BlockedPaths list.
@@ -98,7 +159,7 @@ func TestVerifyRequest_BlockedPath(t *testing.T) {
 
 func TestVerifyRequest_AllowedRequest(t *testing.T) {
 
-	dome := New()
+	dome := New(RealIPAddress)
 	t.Cleanup(dome.Close)
 
 	// A normal browser requesting a normal path should be allowed.
@@ -108,7 +169,7 @@ func TestVerifyRequest_AllowedRequest(t *testing.T) {
 
 func TestVerifyRequest_BlockedIPAddress(t *testing.T) {
 
-	dome := New()
+	dome := New(RealIPAddress)
 	t.Cleanup(dome.Close)
 
 	// Seed the blocked-IP cache with a count above the threshold of 5.
@@ -123,7 +184,7 @@ func TestVerifyRequest_BlockedIPAddress(t *testing.T) {
 
 func TestVerifyRequest_IPBelowThresholdIsAllowed(t *testing.T) {
 
-	dome := New()
+	dome := New(RealIPAddress)
 	t.Cleanup(dome.Close)
 
 	// A count of exactly 5 is NOT over the threshold (the check is > 5).
@@ -138,6 +199,7 @@ func TestVerifyRequest_NilMatchers(t *testing.T) {
 	// A Dome with no user-agent or path matchers configured should still run
 	// VerifyRequest without panicking and allow a non-empty user agent.
 	dome := Dome{
+		clientIP:   RealIPAddress,
 		blockedIPs: createCache(16),
 	}
 	t.Cleanup(dome.Close)
@@ -152,7 +214,7 @@ func TestVerifyRequest_NilMatchers(t *testing.T) {
 
 func TestHandleError_NilError(t *testing.T) {
 
-	dome := New()
+	dome := New(RealIPAddress)
 	t.Cleanup(dome.Close)
 
 	request := newTestRequest("GET", "/welcome", "GoodBrowser", "1.2.3.4:5678")
@@ -162,7 +224,7 @@ func TestHandleError_NilError(t *testing.T) {
 func TestHandleError_LogsMatchingStatusCode(t *testing.T) {
 
 	collection := &fakeCollection{}
-	dome := New(LogDatabase(collection), LogStatusCodes(http.StatusNotFound))
+	dome := New(RealIPAddress, LogDatabase(collection), LogStatusCodes(http.StatusNotFound))
 	t.Cleanup(dome.Close)
 
 	request := newTestRequest("GET", "/missing", "GoodBrowser", "1.2.3.4:5678")
@@ -188,7 +250,7 @@ func TestHandleError_SaveFailureIsReported(t *testing.T) {
 	// report it internally (via derp.Report) but still return the original
 	// error to the caller rather than the save error.
 	collection := &fakeCollection{saveErr: derp.Internal("db", "write failed")}
-	dome := New(LogDatabase(collection), LogStatusCodes(http.StatusNotFound))
+	dome := New(RealIPAddress, LogDatabase(collection), LogStatusCodes(http.StatusNotFound))
 	t.Cleanup(dome.Close)
 
 	request := newTestRequest("GET", "/missing", "GoodBrowser", "1.2.3.4:5678")
@@ -205,7 +267,7 @@ func TestHandleError_SaveFailureIsReported(t *testing.T) {
 func TestHandleError_DoesNotLogUnmatchedStatusCode(t *testing.T) {
 
 	collection := &fakeCollection{}
-	dome := New(LogDatabase(collection), LogStatusCodes(http.StatusNotFound))
+	dome := New(RealIPAddress, LogDatabase(collection), LogStatusCodes(http.StatusNotFound))
 	t.Cleanup(dome.Close)
 
 	request := newTestRequest("GET", "/oops", "GoodBrowser", "1.2.3.4:5678")
@@ -217,7 +279,7 @@ func TestHandleError_DoesNotLogUnmatchedStatusCode(t *testing.T) {
 
 func TestHandleError_BlocksOnBlockStatusCode(t *testing.T) {
 
-	dome := New() // default blockStatusCodes is {403}
+	dome := New(RealIPAddress) // default blockStatusCodes is {403}
 	t.Cleanup(dome.Close)
 
 	request := newTestRequest("GET", "/welcome", "GoodBrowser", "1.2.3.4:5678")
@@ -235,7 +297,7 @@ func TestHandleError_BlocksOnSoftBlockedPath(t *testing.T) {
 
 	// Use a soft-blocked path with a client (4xx) error that is NOT in
 	// blockStatusCodes. This exercises the softBlockedPaths branch.
-	dome := New(
+	dome := New(RealIPAddress,
 		SoftBlockPaths("/phpunit"),
 		BlockStatusCodes(), // clear defaults so only the soft-block path triggers
 	)
@@ -259,7 +321,7 @@ func TestHandleError_SoftBlockedPathServerErrorDoesNotBlock(t *testing.T) {
 
 	// A server (5xx) error on a soft-blocked path is NOT a client error, so it
 	// should not trigger a block.
-	dome := New(
+	dome := New(RealIPAddress,
 		SoftBlockPaths("/phpunit"),
 		BlockStatusCodes(),
 	)
@@ -276,7 +338,7 @@ func TestHandleError_SoftBlockedPathServerErrorDoesNotBlock(t *testing.T) {
 
 func TestHandleError_IncrementsExistingCount(t *testing.T) {
 
-	dome := New()
+	dome := New(RealIPAddress)
 	t.Cleanup(dome.Close)
 
 	// Pre-seed an error count, then confirm HandleError increments it.
@@ -296,7 +358,7 @@ func TestHandleError_NoBlockForNonMatchingError(t *testing.T) {
 
 	// A 500 error with no soft-blocked path match and no matching block status
 	// code should not block the IP address.
-	dome := New(BlockStatusCodes()) // clear defaults
+	dome := New(RealIPAddress, BlockStatusCodes()) // clear defaults
 	t.Cleanup(dome.Close)
 
 	request := newTestRequest("GET", "/welcome", "GoodBrowser", "1.2.3.4:5678")
@@ -315,6 +377,6 @@ func TestHandleError_NoBlockForNonMatchingError(t *testing.T) {
 func TestClose(t *testing.T) {
 
 	// Close should not panic and should leave the cache safe to query.
-	dome := New()
+	dome := New(RealIPAddress)
 	dome.Close()
 }
