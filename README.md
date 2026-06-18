@@ -19,14 +19,14 @@ Digital dome is a fast, minimal web application firewall that uses request infor
 import github.com/benpate/digital-dome/dome
 import github.com/benpate/digital-dome/dome4echo
 
-domeConfig := dome.New(dome.RealIPAddress) // Create a new digital dome (using sensible defaults)
+domeConfig := dome.New(dome.RemoteAddr) // Create a new digital dome (using sensible defaults)
 middleware := dome4echo.New(&domeConfig)   // Create echo middleware
 e.Pre(middleware)                          // Use the middleware
 
 // easy peasy.
 ```
 
-The first argument to `dome.New()` is a required `ClientIPResolver` — a `func(*http.Request) string` that returns the "real" client IP for a request.  This is the address Digital Dome uses when tracking and blocking bad actors, so it must reflect the true client (not a proxy).  Pass the built-in `dome.RealIPAddress` to use Digital Dome's header-based lookup, or supply your own resolver (for example, one backed by a trusted-proxy strategy).
+The first argument to `dome.New()` is a required `ClientIPResolver` — a `func(*http.Request) string` that returns the "real" client IP for a request.  This is the address Digital Dome uses when tracking and blocking bad actors, so it must reflect the true client.  Pass the built-in `dome.RemoteAddr` when Dome runs *without* a trusted proxy in front of it: it reads the TCP peer address, which cannot be spoofed by request headers.  If you run behind a proxy (Cloudflare, a load balancer, etc.), supply your own resolver backed by a trusted-proxy strategy so a malicious client can't forge its IP via headers.
 
 ## Block AI Scrapers
 
@@ -94,7 +94,7 @@ By default, Digital Dome counts all `StatusForbidden` responses towards the quot
 
 ```golang
 domeConfig := dome.New(             // Create the digital dome shield
-    dome.RealIPAddress,             // Resolve the "real" client IP for each request
+    dome.RemoteAddr,             // Resolve the "real" client IP for each request
     dome.BlockStatusCodes(404),     // Choose status codes to trigger blocking behavior
 )
 ```
@@ -105,7 +105,7 @@ Digital Dome uses optional functional parameters to configure its behavior.  You
 
 ```golang
 dd := dome.New(                         // Apply options at creation time
-    dome.RealIPAddress,                 // Resolve the "real" client IP for each request (REQUIRED)
+    dome.RemoteAddr,                 // Resolve the "real" client IP for each request (REQUIRED)
     dome.BlockKnownAIBots(),            // Block AI bots only (instead of the default bad-bot list)
     dome.BlockPaths(dome.BlockedPaths...), // Block the built-in list of commonly scanned paths
     dome.BlockCache(2048),              // Expand the size of the blocked IP cache
@@ -147,7 +147,7 @@ collection := mongodb.                   // Wrap mongo with a data.Collection ad
     Collection("DigitalDome_LogFiles") 
 
 domeConfig := dome.New(                  // Create the digital dome shield
-    dome.RealIPAddress,                  // Resolve the "real" client IP for each request
+    dome.RemoteAddr,                  // Resolve the "real" client IP for each request
     dome.LogDatabase(collection),        // Use this database collection to log errors
     dome.LogStatusCodes(404),            // Choose status codes to log
 )  

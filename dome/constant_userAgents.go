@@ -1,14 +1,15 @@
 package dome
 
-// This list compiled by manual scans from multiple following sources:
+// KnownAIBots lists the User-Agent strings of known AI crawlers.
+//
+// Compiled by manual scans from multiple sources:
 // https://ethanmarcotte.com/wrote/blockin-bots/
 // https://www.cyberciti.biz/web-developer/block-openai-bard-bing-ai-crawler-bots-using-robots-txt-file/
 // https://www.nytimes.com/robots.txt
 // https://www.bbc.co.uk/robots.txt
 // https://connect.iftas.org/library/tools-resources/web-crawlers-and-scrapers/
 // https://www.foundationwebdev.com/2023/11/which-web-crawlers-are-associated-with-ai-crawlers/
-
-var KnownAIBots []string = []string{
+var KnownAIBots = []string{
 
 	// Bots we know about but are going to allow...
 	// "FacebookBot", //
@@ -63,10 +64,12 @@ var KnownAIBots []string = []string{
 	"YouBot",
 }
 
-// This list compiled by manual scans from multiple following sources:
+// AllKnownBadBots lists the User-Agent strings of all known bad bots,
+// including every entry in KnownAIBots plus a wider set of scrapers and scanners.
+//
+// Compiled by manual scans from multiple sources:
 // https://github.com/mitchellkrogza/nginx-ultimate-bad-bot-blocker (MIT Licensed)
-
-var AllKnownBadBots []string = append(KnownAIBots,
+var AllKnownBadBots = append(KnownAIBots,
 	"01h4x.com",
 	"360Spider",
 	"404checker",

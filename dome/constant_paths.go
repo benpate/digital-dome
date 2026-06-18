@@ -1,7 +1,7 @@
 package dome
 
 // BlockedPaths lists out common paths that are scanned by bots
-// for vunerabilities.
+// for vulnerabilities.
 var BlockedPaths = []string{
 	"/application.properties", // Java properties file
 	"/.aws/",                  // AWS directory

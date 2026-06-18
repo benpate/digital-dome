@@ -3,20 +3,15 @@ package dome
 import (
 	"net"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/benpate/derp"
-	"github.com/benpate/uri"
 	"github.com/maypok86/otter"
 )
 
-// Some notes on looking up real IP addresses:
-// https://adam-p.ca/blog/2022/03/x-forwarded-for/
-
-// TrueHostname returns the "true" hostname for a request, preferring the
+// trueHostname returns the "true" hostname for a request, preferring the
 // X-Forwarded-Host header (set by proxies) over the request's Host header.
-func TrueHostname(request *http.Request) string {
+func trueHostname(request *http.Request) string {
 
 	// If this is a proxied request, we need to use the X-Forwarded-Host header
 	// instead of the Host header
@@ -28,42 +23,13 @@ func TrueHostname(request *http.Request) string {
 	return request.Host
 }
 
-// RealIPAddress returns the real IP address of the request,
-// taking into account X-Real-IP and X-Forwarded-For headers.
-// It is the built-in ClientIPResolver, suitable for passing to New when the
-// caller has no trusted-proxy strategy of its own.
-func RealIPAddress(request *http.Request) string {
-
-	// Get IP address from CloudFlare (this is more trustworthy than other headers)
-	if cfConnectingIP := request.Header.Get("CF-Connecting-IP"); cfConnectingIP != "" {
-		return cfConnectingIP
-	}
-
-	// Get the "true client ip" for Akamai
-	if trueClientIP := request.Header.Get("True-Client-IP"); trueClientIP != "" {
-		return trueClientIP
-	}
-
-	// Get IP address from X-Forwarded-For header
-	if forwardedFor := request.Header.Get("X-Forwarded-For"); forwardedFor != "" {
-
-		// Scan for first non-local ip address
-		for _, ip := range strings.Split(forwardedFor, ",") {
-			ip = strings.TrimSpace(ip)
-			if !uri.IsLocalHostname(ip) {
-				return ip
-			}
-		}
-	}
-
-	// Get IP address from X-Real-IP header
-	if realIP := request.Header.Get("X-Real-Ip"); realIP != "" {
-		return realIP
-	}
-
-	// Get IP address from request.RemoteAddr
-	result, _, _ := net.SplitHostPort(request.RemoteAddr)
-	return result
+// RemoteAddr returns the request's TCP peer address (host portion of
+// RemoteAddr). It is the built-in ClientIPResolver and the safe default when
+// Dome is not behind a trusted proxy, because it cannot be spoofed by request
+// headers. Callers behind a proxy should inject a proxy-aware resolver instead.
+func RemoteAddr(request *http.Request) string {
+	host, _, _ := net.SplitHostPort(request.RemoteAddr)
+	return host
 }
 
 // createCache creates an Otter cache with the provided capacity and variable TTL.

@@ -10,123 +10,58 @@ import (
 )
 
 /******************************************
- * RealIPAddress
+ * RemoteAddr
  ******************************************/
 
-func TestRealIPAddress(t *testing.T) {
+func TestRemoteAddr(t *testing.T) {
 
-	// Closure builds a request with the provided headers and remote address,
-	// then confirms that RealIPAddress returns the expected value.
-	verify := func(remoteAddr string, headers map[string]string, expected string) {
-		request := &http.Request{
-			RemoteAddr: remoteAddr,
-			Header:     http.Header{},
-		}
-
-		for key, value := range headers {
-			request.Header.Set(key, value)
-		}
-
-		assert.Equal(t, expected, RealIPAddress(request))
-	}
-
-	// CF-Connecting-IP has the highest priority.
-	verify("10.0.0.1:1234", map[string]string{
-		"CF-Connecting-IP": "1.1.1.1",
-		"True-Client-IP":   "2.2.2.2",
-		"X-Forwarded-For":  "3.3.3.3",
-		"X-Real-Ip":        "4.4.4.4",
-	}, "1.1.1.1")
-
-	// True-Client-IP is used when CF-Connecting-IP is absent.
-	verify("10.0.0.1:1234", map[string]string{
-		"True-Client-IP":  "2.2.2.2",
-		"X-Forwarded-For": "3.3.3.3",
-		"X-Real-Ip":       "4.4.4.4",
-	}, "2.2.2.2")
-
-	// X-Forwarded-For is used when the higher-priority headers are absent.
-	verify("10.0.0.1:1234", map[string]string{
-		"X-Forwarded-For": "3.3.3.3",
-		"X-Real-Ip":       "4.4.4.4",
-	}, "3.3.3.3")
-
-	// X-Real-Ip is used when only it and RemoteAddr are present.
-	verify("10.0.0.1:1234", map[string]string{
-		"X-Real-Ip": "4.4.4.4",
-	}, "4.4.4.4")
-
-	// RemoteAddr (host portion only) is the final fallback.
-	verify("10.0.0.1:1234", map[string]string{}, "10.0.0.1")
+	// RemoteAddr returns the host portion of the request's RemoteAddr.
+	request := &http.Request{RemoteAddr: "10.0.0.1:1234"}
+	assert.Equal(t, "10.0.0.1", RemoteAddr(request))
 }
 
-func TestRealIPAddress_ForwardedForSkipsLocalhost(t *testing.T) {
+func TestRemoteAddr_IgnoresHeaders(t *testing.T) {
 
-	// The first non-localhost address in X-Forwarded-For should be returned.
+	// RemoteAddr must NOT trust client-supplied headers; only the real TCP peer
+	// counts. This is the security property that makes it spoof-proof.
 	request := &http.Request{
 		RemoteAddr: "10.0.0.1:1234",
 		Header:     http.Header{},
 	}
-	request.Header.Set("X-Forwarded-For", "127.0.0.1, 192.168.1.1, 8.8.8.8")
+	request.Header.Set("CF-Connecting-IP", "1.1.1.1")
+	request.Header.Set("X-Forwarded-For", "2.2.2.2")
+	request.Header.Set("X-Real-Ip", "3.3.3.3")
 
-	assert.Equal(t, "8.8.8.8", RealIPAddress(request))
+	assert.Equal(t, "10.0.0.1", RemoteAddr(request))
 }
 
-func TestRealIPAddress_ForwardedForAllLocalhost(t *testing.T) {
-
-	// When every X-Forwarded-For entry is recognized as localhost/private, the
-	// loop falls through and the next available source (X-Real-Ip here) is used.
-	// uri.IsLocalHostname recognizes IPv4 loopback/RFC-1918 ranges as well as
-	// IPv6 loopback (::1) and RFC-4193 unique-local addresses.
-	request := &http.Request{
-		RemoteAddr: "10.0.0.1:1234",
-		Header:     http.Header{},
-	}
-	request.Header.Set("X-Forwarded-For", "127.0.0.1, ::1, 10.0.0.5, 192.168.1.1")
-	request.Header.Set("X-Real-Ip", "9.9.9.9")
-
-	assert.Equal(t, "9.9.9.9", RealIPAddress(request))
-}
-
-func TestRealIPAddress_BadRemoteAddr(t *testing.T) {
+func TestRemoteAddr_BadRemoteAddr(t *testing.T) {
 
 	// A RemoteAddr without a port cannot be split, so SplitHostPort fails and
-	// RealIPAddress returns the empty string.
-	request := &http.Request{
-		RemoteAddr: "not-a-valid-host-port",
-		Header:     http.Header{},
-	}
-
-	assert.Equal(t, "", RealIPAddress(request))
+	// RemoteAddr returns the empty string.
+	request := &http.Request{RemoteAddr: "not-a-valid-host-port"}
+	assert.Equal(t, "", RemoteAddr(request))
 }
 
-// FuzzRealIPAddress confirms that RealIPAddress never panics, regardless of the
-// (untrusted) header and remote-address values it is given. It parses attacker-
-// controlled input, so robustness against malformed values matters.
-func FuzzRealIPAddress(f *testing.F) {
+// FuzzRemoteAddr confirms that RemoteAddr never panics, regardless of the
+// RemoteAddr value it is given.
+func FuzzRemoteAddr(f *testing.F) {
 
-	f.Add("1.1.1.1", "2.2.2.2", "3.3.3.3, 4.4.4.4", "5.5.5.5", "6.6.6.6:7777")
-	f.Add("", "", "", "", "")
-	f.Add("", "", "127.0.0.1, , 8.8.8.8", "", "bad-remote-addr")
+	f.Add("6.6.6.6:7777")
+	f.Add("")
+	f.Add("bad-remote-addr")
+	f.Add("[::1]:80")
 
-	f.Fuzz(func(t *testing.T, cfIP string, trueIP string, forwardedFor string, realIP string, remoteAddr string) {
-
-		request := &http.Request{
-			RemoteAddr: remoteAddr,
-			Header:     http.Header{},
-		}
-		request.Header.Set("CF-Connecting-IP", cfIP)
-		request.Header.Set("True-Client-IP", trueIP)
-		request.Header.Set("X-Forwarded-For", forwardedFor)
-		request.Header.Set("X-Real-Ip", realIP)
+	f.Fuzz(func(_ *testing.T, remoteAddr string) {
+		request := &http.Request{RemoteAddr: remoteAddr}
 
 		// We only require that the call returns without panicking.
-		_ = RealIPAddress(request)
+		_ = RemoteAddr(request)
 	})
 }
 
 /******************************************
- * TrueHostname
+ * trueHostname
  ******************************************/
 
 func TestTrueHostname(t *testing.T) {
@@ -137,7 +72,7 @@ func TestTrueHostname(t *testing.T) {
 		Header: http.Header{},
 	}
 	request.Header.Set("X-Forwarded-Host", "public.example.com")
-	assert.Equal(t, "public.example.com", TrueHostname(request))
+	assert.Equal(t, "public.example.com", trueHostname(request))
 }
 
 func TestTrueHostname_FallsBackToHost(t *testing.T) {
@@ -147,7 +82,7 @@ func TestTrueHostname_FallsBackToHost(t *testing.T) {
 		Host:   "example.com",
 		Header: http.Header{},
 	}
-	assert.Equal(t, "example.com", TrueHostname(request))
+	assert.Equal(t, "example.com", trueHostname(request))
 }
 
 /******************************************
@@ -185,7 +120,7 @@ func TestCreateCache_NegativeCapacity(t *testing.T) {
 func TestBlockCache_ZeroCapacityDoesNotPanic(t *testing.T) {
 
 	// Exercise the public path: a caller passing BlockCache(0) must not panic.
-	dome := New(RealIPAddress)
+	dome := New(RemoteAddr)
 	t.Cleanup(dome.Close)
 
 	require.NotPanics(t, func() {

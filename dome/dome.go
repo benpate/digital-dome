@@ -35,7 +35,7 @@ type Dome struct {
 // and is used to determine the "real" IP address of each request. Passing a nil
 // resolver is a programming error and causes New to panic.
 //
-// Callers that want Dome's built-in header-based lookup can pass RealIPAddress.
+// Callers not behind a trusted proxy can pass the built-in RemoteAddr resolver.
 func New(clientIP ClientIPResolver, options ...Option) Dome {
 
 	if clientIP == nil {
@@ -105,7 +105,7 @@ func (dome *Dome) VerifyRequest(request *http.Request) error {
 
 // HandleError is called by the HTTP middleware to report an error back into the Dome.
 // Based on configureation settings, this will log the error and/or block the IP address.
-func (d *Dome) HandleError(request *http.Request, err error) error {
+func (dome *Dome) HandleError(request *http.Request, err error) error {
 
 	const location = "dome.HandleError"
 
@@ -117,21 +117,21 @@ func (d *Dome) HandleError(request *http.Request, err error) error {
 	statusCode := derp.ErrorCode(err)
 
 	// Try to add this error to the database log.
-	if d.logDatabase != nil {
+	if dome.logDatabase != nil {
 
 		// If this is a status code that we want to log, then log it.
-		if slices.Contains(d.logStatusCodes, statusCode) {
+		if slices.Contains(dome.logStatusCodes, statusCode) {
 
 			record := Request{
 				UserAgent:  request.Header.Get("User-Agent"),
-				IPAddress:  d.clientIP(request),
-				URL:        TrueHostname(request) + request.URL.RequestURI(),
+				IPAddress:  dome.clientIP(request),
+				URL:        trueHostname(request) + request.URL.RequestURI(),
 				Method:     request.Method,
 				StatusCode: statusCode,
 				StatusText: http.StatusText(statusCode),
 			}
 
-			if saveErr := d.logDatabase.Save(&record, ""); saveErr != nil {
+			if saveErr := dome.logDatabase.Save(&record, ""); saveErr != nil {
 				derp.Report(derp.Wrap(saveErr, location, "Unable to save log record"))
 			}
 		}
@@ -139,12 +139,12 @@ func (d *Dome) HandleError(request *http.Request, err error) error {
 
 	block := false
 
-	if slices.Contains(d.blockStatusCodes, statusCode) {
+	if slices.Contains(dome.blockStatusCodes, statusCode) {
 		block = true
 
-	} else if d.softBlockedPaths != nil {
+	} else if dome.softBlockedPaths != nil {
 		if derp.IsClientError(err) {
-			if path := request.URL.Path; d.softBlockedPaths.Contains([]byte(path)) {
+			if path := request.URL.Path; dome.softBlockedPaths.Contains([]byte(path)) {
 				err = derp.Forbidden(location, "Path is blocked", path, err)
 				block = true
 			}
@@ -153,16 +153,17 @@ func (d *Dome) HandleError(request *http.Request, err error) error {
 
 	// Try to block this IP address based on the statusCode
 	if block {
-		remoteAddress := d.clientIP(request)             // get the real IP address (not some shifty, fake one)
-		errorCount, _ := d.blockedIPs.Get(remoteAddress) // get the existing error count
-		errorCount = errorCount + 1                      // increment
-		ttl := getTTL(errorCount)                        // calculate the TTL based on the number of errors in the queue
-		d.blockedIPs.Set(remoteAddress, errorCount, ttl) // save the new error count.
+		remoteAddress := dome.clientIP(request)             // get the real IP address (not some shifty, fake one)
+		errorCount, _ := dome.blockedIPs.Get(remoteAddress) // get the existing error count
+		errorCount = errorCount + 1                         // increment
+		ttl := getTTL(errorCount)                           // calculate the TTL based on the number of errors in the queue
+		dome.blockedIPs.Set(remoteAddress, errorCount, ttl) // save the new error count.
 	}
 
 	return err
 }
 
-func (d *Dome) Close() {
-	d.blockedIPs.Close()
+// Close releases the resources held by the Dome (its blocked-IP cache).
+func (dome *Dome) Close() {
+	dome.blockedIPs.Close()
 }

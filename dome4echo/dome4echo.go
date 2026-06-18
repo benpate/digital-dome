@@ -1,3 +1,4 @@
+// Package dome4echo adapts a digital-dome Dome into echo router middleware.
 package dome4echo
 
 import (
