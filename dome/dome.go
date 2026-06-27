@@ -1,8 +1,10 @@
 package dome
 
 import (
+	"hash/fnv"
 	"net/http"
 	"slices"
+	"sync"
 
 	"github.com/benpate/data"
 	"github.com/benpate/derp"
@@ -14,6 +16,10 @@ import (
 // https://blog.gopheracademy.com/advent-2014/string-matching/
 // https://github.com/cloudflare/ahocorasick
 
+// blockCountShards is the number of mutexes that guard the blocked-IP counter.
+// Each IP maps to one shard, so updates to different IPs rarely contend.
+const blockCountShards = 256
+
 // Dome object contains the matcher that is used to identify blocked user agents.
 type Dome struct {
 	clientIP          ClientIPResolver
@@ -21,6 +27,7 @@ type Dome struct {
 	blockedPaths      *ahocorasick.Matcher
 	softBlockedPaths  *ahocorasick.Matcher
 	blockedIPs        otter.CacheWithVariableTTL[string, int]
+	blockCountLocks   [blockCountShards]sync.Mutex
 	logDatabase       data.Collection
 	logStatusCodes    []int
 	blockStatusCodes  []int
@@ -152,14 +159,35 @@ func (dome *Dome) HandleError(request *http.Request, err error) error {
 
 	// Try to block this IP address based on the statusCode
 	if block {
-		remoteAddress := dome.clientIP(request)             // get the real IP address (not some shifty, fake one)
-		errorCount, _ := dome.blockedIPs.Get(remoteAddress) // get the existing error count
-		errorCount = errorCount + 1                         // increment
-		ttl := getTTL(errorCount)                           // calculate the TTL based on the number of errors in the queue
-		dome.blockedIPs.Set(remoteAddress, errorCount, ttl) // save the new error count.
+		dome.incrementBlockCount(dome.clientIP(request)) // get the real IP (not some shifty, fake one) and count the error
 	}
 
 	return err
+}
+
+// incrementBlockCount adds one to the error count for the given IP address and
+// refreshes its TTL. Otter exposes no atomic update, so a per-IP shard lock makes
+// the read-modify-write atomic; without it, concurrent errors from one IP would
+// lose increments -- exactly the burst this counter exists to catch.
+func (dome *Dome) incrementBlockCount(remoteAddress string) {
+
+	// Lock the shard this IP maps to. Different IPs almost always land on
+	// different shards, so legitimate traffic rarely contends.
+	lock := &dome.blockCountLocks[blockCountShard(remoteAddress)]
+	lock.Lock()
+	defer lock.Unlock()
+
+	errorCount, _ := dome.blockedIPs.Get(remoteAddress) // get the existing error count
+	errorCount = errorCount + 1                         // increment
+	ttl := getTTL(errorCount)                           // calculate the TTL based on the number of errors in the queue
+	dome.blockedIPs.Set(remoteAddress, errorCount, ttl) // save the new error count
+}
+
+// blockCountShard maps an IP address to one of the blockCountLocks shards.
+func blockCountShard(remoteAddress string) uint32 {
+	hash := fnv.New32a()
+	_, _ = hash.Write([]byte(remoteAddress)) // hash.Write never returns an error
+	return hash.Sum32() % blockCountShards
 }
 
 // Close releases the resources held by the Dome (its blocked-IP cache).

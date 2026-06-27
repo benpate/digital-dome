@@ -1,8 +1,10 @@
 package dome
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
+	"sync"
 	"testing"
 
 	"github.com/benpate/derp"
@@ -371,6 +373,69 @@ func TestHandleError_NoBlockForNonMatchingError(t *testing.T) {
 
 	_, ok := dome.blockedIPs.Get("1.2.3.4")
 	require.False(t, ok)
+}
+
+/******************************************
+ * Concurrency
+ ******************************************/
+
+func TestHandleError_ConcurrentErrorsFromOneIPAreNotLost(t *testing.T) {
+
+	// The block counter is a read-modify-write against a cache with no atomic
+	// update, so a per-IP lock protects it. Fire many concurrent errors from a
+	// single IP and confirm every increment lands -- run with -race to also catch
+	// any data race. Without the lock, this count would fall short of N.
+	dome := New(RemoteAddr) // default blockStatusCodes is {403}
+	t.Cleanup(dome.Close)
+
+	const concurrency = 100
+
+	var wg sync.WaitGroup
+	wg.Add(concurrency)
+
+	for i := 0; i < concurrency; i++ {
+		go func() {
+			defer wg.Done()
+			request := newTestRequest("GET", "/welcome", "GoodBrowser", "1.2.3.4:5678")
+			_ = dome.HandleError(request, derp.Forbidden("test", "forbidden")) // 403 blocks
+		}()
+	}
+
+	wg.Wait()
+
+	count, ok := dome.blockedIPs.Get("1.2.3.4")
+	require.True(t, ok)
+	require.Equal(t, concurrency, count) // every one of the N errors was counted
+}
+
+func TestHandleError_ConcurrentErrorsFromDifferentIPs(t *testing.T) {
+
+	// Different IPs map to (almost always) different shards, so their counters
+	// advance independently. Each IP errors once and must end at exactly 1.
+	dome := New(RemoteAddr)
+	t.Cleanup(dome.Close)
+
+	const concurrency = 100
+
+	var wg sync.WaitGroup
+	wg.Add(concurrency)
+
+	for i := 0; i < concurrency; i++ {
+		go func(n int) {
+			defer wg.Done()
+			remoteAddr := fmt.Sprintf("10.0.0.%d:5678", n)
+			request := newTestRequest("GET", "/welcome", "GoodBrowser", remoteAddr)
+			_ = dome.HandleError(request, derp.Forbidden("test", "forbidden"))
+		}(i)
+	}
+
+	wg.Wait()
+
+	for i := 0; i < concurrency; i++ {
+		count, ok := dome.blockedIPs.Get(fmt.Sprintf("10.0.0.%d", i))
+		require.True(t, ok)
+		require.Equal(t, 1, count)
+	}
 }
 
 /******************************************
