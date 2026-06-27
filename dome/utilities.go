@@ -13,8 +13,9 @@ import (
 // X-Forwarded-Host header (set by proxies) over the request's Host header.
 func trueHostname(request *http.Request) string {
 
-	// If this is a proxied request, we need to use the X-Forwarded-Host header
-	// instead of the Host header
+	// Trust the client-supplied X-Forwarded-Host header here because trueHostname
+	// only feeds the URL of a log record -- never a blocking decision -- so a
+	// spoofed value cannot bypass any guard.
 	if trueHost := request.Header.Get("X-Forwarded-Host"); trueHost != "" {
 		return trueHost
 	}

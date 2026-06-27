@@ -57,6 +57,10 @@ func New(clientIP ClientIPResolver, options ...Option) *Dome {
 }
 
 // With applies the provided options to the Dome object.
+//
+// With mutates the Dome's matchers and cache without synchronization, so it must
+// be called during setup (before the Dome begins serving requests). Calling it
+// once requests are in flight races with VerifyRequest and HandleError.
 func (dome *Dome) With(options ...Option) {
 	for _, option := range options {
 		option(dome)
