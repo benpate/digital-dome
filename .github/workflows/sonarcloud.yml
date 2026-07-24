@@ -29,6 +29,10 @@ jobs:
 
     - name: SonarCloud Scan
       uses: SonarSource/sonarqube-scan-action@713881670b6b3676cda39549040e2d88c70d582e # v8.2.0
+      with:
+        args: >
+          -Dsonar.organization=benpate
+          -Dsonar.projectKey=benpate_digital-dome
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_HOST_URL: https://sonarcloud.io
