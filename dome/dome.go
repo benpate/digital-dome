@@ -36,7 +36,6 @@ type Dome struct {
 // New returns a fully initialized Dome object. The clientIP resolver is REQUIRED
 // and is used to determine the "real" IP address of each request. Passing a nil
 // resolver is a programming error and causes New to panic.
-//
 // Callers not behind a trusted proxy can pass the built-in RemoteAddr resolver.
 func New(clientIP ClientIPResolver, options ...Option) *Dome {
 
@@ -64,11 +63,12 @@ func New(clientIP ClientIPResolver, options ...Option) *Dome {
 }
 
 // With applies the provided options to the Dome object.
-//
-// With mutates the Dome's matchers and cache without synchronization, so it must
-// be called during setup (before the Dome begins serving requests). Calling it
-// once requests are in flight races with VerifyRequest and HandleError.
 func (dome *Dome) With(options ...Option) {
+
+	// With mutates the Dome's matchers and cache without synchronization, so it must
+	// be called during setup (before the Dome begins serving requests). Calling it
+	// once requests are in flight races with VerifyRequest and HandleError.
+
 	for _, option := range options {
 		option(dome)
 	}
@@ -165,11 +165,27 @@ func (dome *Dome) HandleError(request *http.Request, err error) error {
 	return err
 }
 
+// Block records one abuse event against the request's client IP, pushing that IP
+// toward (and refreshing the TTL of) a temporary block.
+func (dome *Dome) Block(request *http.Request) {
+
+	// Use this method to feed the Dome
+	// from application-level policy that never surfaces as a blockable HTTP status --
+	// for example a failed sign-in that renders its own response instead of returning
+	// an error up the middleware chain. The block key is the same resolved client IP
+	// that VerifyRequest checks, so enough Block calls from one IP will begin blocking
+	// all of its traffic exactly as a run of blockable status codes would.
+
+	dome.incrementBlockCount(dome.clientIP(request))
+}
+
 // incrementBlockCount adds one to the error count for the given IP address and
-// refreshes its TTL. Otter exposes no atomic update, so a per-IP shard lock makes
-// the read-modify-write atomic; without it, concurrent errors from one IP would
-// lose increments -- exactly the burst this counter exists to catch.
+// refreshes its TTL.
 func (dome *Dome) incrementBlockCount(remoteAddress string) {
+
+	// Otter exposes no atomic update, so a per-IP shard lock makes
+	// the read-modify-write atomic; without it, concurrent errors from one IP would
+	// lose increments -- exactly the burst this counter exists to catch.
 
 	// Lock the shard this IP maps to. Different IPs almost always land on
 	// different shards, so legitimate traffic rarely contends.
