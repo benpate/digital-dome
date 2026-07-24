@@ -194,6 +194,44 @@ func TestVerifyRequest_IPBelowThresholdIsAllowed(t *testing.T) {
 	require.Nil(t, dome.VerifyRequest(request))
 }
 
+func TestBlock_PushesIPOverThreshold(t *testing.T) {
+
+	dome := New(RemoteAddr)
+	t.Cleanup(dome.Close)
+
+	request := newTestRequest("GET", "/signin", "GoodBrowser", "1.2.3.4:5678")
+
+	// Below the threshold of 5, the IP is still allowed.
+	for range 5 {
+		dome.Block(request)
+	}
+	require.Nil(t, dome.VerifyRequest(request))
+
+	// The sixth abuse event pushes the count over the threshold and the IP is blocked.
+	dome.Block(request)
+	err := dome.VerifyRequest(request)
+
+	require.NotNil(t, err)
+	require.Equal(t, http.StatusForbidden, derp.ErrorCode(err))
+}
+
+func TestBlock_UsesResolvedClientIP(t *testing.T) {
+
+	// A custom resolver returns a fixed IP regardless of RemoteAddr, proving Block
+	// keys on the resolved client IP (the trusted-proxy address), not the raw peer.
+	dome := New(func(*http.Request) string { return "9.9.9.9" })
+	t.Cleanup(dome.Close)
+
+	blocked := newTestRequest("GET", "/signin", "GoodBrowser", "1.2.3.4:5678")
+	for range 6 {
+		dome.Block(blocked)
+	}
+
+	// Any request now resolves to 9.9.9.9, so every request is blocked.
+	other := newTestRequest("GET", "/welcome", "GoodBrowser", "5.6.7.8:9999")
+	require.NotNil(t, dome.VerifyRequest(other))
+}
+
 func TestVerifyRequest_NilMatchers(t *testing.T) {
 
 	// A Dome with no user-agent or path matchers configured should still run
