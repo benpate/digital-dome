@@ -9,14 +9,14 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-// New returns an echo MiddlewareFunc that scans every request using Silicon Dome.
+// New returns an echo MiddlewareFunc that scans every request using Digital Dome.
 func New(d *dome.Dome) echo.MiddlewareFunc {
 
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 
 		return func(ctx echo.Context) error {
 
-			// If this request is blocked, then halt here.
+			// RULE: Blocked requests halt here, and never reach the next handler
 			if err := d.VerifyRequest(ctx.Request()); err != nil {
 				_ = d.HandleError(ctx.Request(), err)
 				ctx.Response().Header().Set("X-Dome-Blocked", derp.Message(err))

@@ -34,19 +34,20 @@ func BlockUserAgents(blockedAgents ...string) Option {
  ******************************************/
 
 // SoftBlockPaths is a dome.Option that soft blocks the provided paths.
-// This means that the requests are allowed, but will count towards a
-// client's score if the request returns a client (4xx) error.
 func SoftBlockPaths(paths ...string) Option {
 	return func(d *Dome) {
+
+		// Soft-blocked requests are allowed through, but count against the client's
+		// score if the request returns a client (4xx) error.
 		d.softBlockedPaths = ahocorasick.NewStringMatcher(paths)
 	}
 }
 
 // BlockPaths is a dome.Option that blocks the provided paths.
-// These requests are blocked from the application server, and will
-// count towards a client's score.
 func BlockPaths(paths ...string) Option {
 	return func(d *Dome) {
+
+		// These requests never reach the application server, and count against the client's score.
 		d.blockedPaths = ahocorasick.NewStringMatcher(paths)
 	}
 }
@@ -84,12 +85,12 @@ func BlockStatusCodes(statusCodes ...int) Option {
 func BlockCache(capacity int) Option {
 	return func(d *Dome) {
 
-		// If the capacity has not changed, then do nothing.
+		// RULE: If the capacity has not changed, then do nothing
 		if capacity == d.blockedIPs.Capacity() {
 			return
 		}
 
-		// Close the previous cache, if it exists
+		// Close the previous cache, releasing its resources
 		d.blockedIPs.Close()
 
 		// Create a new cache with the new capacity

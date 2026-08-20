@@ -13,9 +13,8 @@ import (
 // X-Forwarded-Host header (set by proxies) over the request's Host header.
 func trueHostname(request *http.Request) string {
 
-	// Trust the client-supplied X-Forwarded-Host header here because trueHostname
-	// only feeds the URL of a log record -- never a blocking decision -- so a
-	// spoofed value cannot bypass any guard.
+	// Trusting this client-supplied header is safe because it only feeds the URL of a
+	// log record -- never a blocking decision -- so a spoofed value bypasses no guard.
 	if trueHost := request.Header.Get("X-Forwarded-Host"); trueHost != "" {
 		return trueHost
 	}
@@ -24,11 +23,12 @@ func trueHostname(request *http.Request) string {
 	return request.Host
 }
 
-// RemoteAddr returns the request's TCP peer address (host portion of
-// RemoteAddr). It is the built-in ClientIPResolver and the safe default when
-// Dome is not behind a trusted proxy, because it cannot be spoofed by request
-// headers. Callers behind a proxy should inject a proxy-aware resolver instead.
+// RemoteAddr returns the host portion of the request's TCP peer address.
+// It is the built-in ClientIPResolver.
 func RemoteAddr(request *http.Request) string {
+
+	// Safe default when Dome is not behind a trusted proxy, because request headers
+	// cannot spoof it. Callers behind a proxy should inject a proxy-aware resolver.
 	host, _, _ := net.SplitHostPort(request.RemoteAddr)
 	return host
 }
@@ -36,9 +36,7 @@ func RemoteAddr(request *http.Request) string {
 // createCache creates an Otter cache with the provided capacity and variable TTL.
 func createCache(capacity int) otter.CacheWithVariableTTL[string, int] {
 
-	// Don't allow zero or negative cache sizes. The underlying otter builder
-	// panics when asked to build a cache with a capacity less than 1, so clamp
-	// any such value up to a minimum of 1.
+	// RULE: Clamp the capacity to at least 1, because otter.NewBuilder errors below that
 	if capacity < 1 {
 		capacity = 1
 	}
@@ -59,7 +57,7 @@ func getTTL(count int) time.Duration {
 
 	switch {
 	// For the first ten errors, wait one minute each (up to ten minutes)
-	// Requests will start being blocked after 5 errors / 5 minutes
+	// VerifyRequest blocks once the count exceeds 5, so blocking begins on the 6th error
 	case count < 10:
 		return 1 * time.Minute
 

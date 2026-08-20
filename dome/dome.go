@@ -12,7 +12,7 @@ import (
 	"github.com/maypok86/otter"
 )
 
-// On advice from Gopher Academy, Silicon Dome uses Aho-Corasick string matching to block user agents.
+// On advice from Gopher Academy, Digital Dome uses Aho-Corasick string matching to block user agents.
 // https://blog.gopheracademy.com/advent-2014/string-matching/
 // https://github.com/cloudflare/ahocorasick
 
@@ -33,12 +33,11 @@ type Dome struct {
 	blockStatusCodes  []int
 }
 
-// New returns a fully initialized Dome object. The clientIP resolver is REQUIRED
-// and is used to determine the "real" IP address of each request. Passing a nil
-// resolver is a programming error and causes New to panic.
-// Callers not behind a trusted proxy can pass the built-in RemoteAddr resolver.
+// New returns a fully initialized Dome object, using clientIP to resolve the
+// "real" IP address of each request.
 func New(clientIP ClientIPResolver, options ...Option) *Dome {
 
+	// RULE: A resolver is required. Passing nil is a programming error, not a runtime condition.
 	if clientIP == nil {
 		panic("dome.New: clientIP resolver is required")
 	}
@@ -65,9 +64,8 @@ func New(clientIP ClientIPResolver, options ...Option) *Dome {
 // With applies the provided options to the Dome object.
 func (dome *Dome) With(options ...Option) {
 
-	// With mutates the Dome's matchers and cache without synchronization, so it must
-	// be called during setup (before the Dome begins serving requests). Calling it
-	// once requests are in flight races with VerifyRequest and HandleError.
+	// Mutates matchers and cache without synchronization, so it must run during setup.
+	// Calling it once requests are in flight races with VerifyRequest and HandleError.
 
 	for _, option := range options {
 		option(dome)
@@ -80,25 +78,26 @@ func (dome *Dome) VerifyRequest(request *http.Request) error {
 
 	const location = "dome.VerifyRequest"
 
-	// If this IP address has caused more than 5 qualifying errors (since the TTL) then block this request.
+	// RULE: Block IP addresses that have already exceeded the error threshold (within the TTL)
 	if count, _ := dome.blockedIPs.Get(dome.clientIP(request)); count > 5 {
 		return derp.Forbidden(location, "Blocked due to previous scanning activity.  Try again later.", request.RemoteAddr)
 	}
 
-	// Try to block request based on the User-Agent
+	// RULE: Every request must identify itself with a User-Agent
 	userAgent := request.Header.Get("User-Agent")
 
 	if userAgent == "" {
 		return derp.Forbidden(location, "User Agent must not be empty")
 	}
 
+	// RULE: Block User-Agents that match the blocklist
 	if dome.blockedUserAgents != nil {
 		if dome.blockedUserAgents.Contains([]byte(userAgent)) {
 			return derp.Forbidden(location, "User Agent is blocked", userAgent)
 		}
 	}
 
-	// Try to block request based on the URL/Path
+	// RULE: Block paths that match the blocklist
 	if dome.blockedPaths != nil {
 		if path := request.URL.Path; dome.blockedPaths.Contains([]byte(path)) {
 			return derp.Forbidden(location, "Path is blocked", path)
@@ -109,8 +108,8 @@ func (dome *Dome) VerifyRequest(request *http.Request) error {
 	return nil
 }
 
-// HandleError is called by the HTTP middleware to report an error back into the Dome.
-// Based on configureation settings, this will log the error and/or block the IP address.
+// HandleError reports a downstream error back into the Dome, which may log the
+// error and/or count it against the client's IP address.
 func (dome *Dome) HandleError(request *http.Request, err error) error {
 
 	const location = "dome.HandleError"
@@ -143,6 +142,7 @@ func (dome *Dome) HandleError(request *http.Request, err error) error {
 		}
 	}
 
+	// RULE: A blockable status code, or a client error on a soft-blocked path, counts against the client
 	block := false
 
 	if slices.Contains(dome.blockStatusCodes, statusCode) {
@@ -169,12 +169,9 @@ func (dome *Dome) HandleError(request *http.Request, err error) error {
 // toward (and refreshing the TTL of) a temporary block.
 func (dome *Dome) Block(request *http.Request) {
 
-	// Use this method to feed the Dome
-	// from application-level policy that never surfaces as a blockable HTTP status --
-	// for example a failed sign-in that renders its own response instead of returning
-	// an error up the middleware chain. The block key is the same resolved client IP
-	// that VerifyRequest checks, so enough Block calls from one IP will begin blocking
-	// all of its traffic exactly as a run of blockable status codes would.
+	// Feeds the Dome from application policy that never surfaces as a blockable HTTP
+	// status -- a failed sign-in that renders its own response, for example. Keys on the
+	// same resolved IP as VerifyRequest, so enough calls block the client's whole traffic.
 
 	dome.incrementBlockCount(dome.clientIP(request))
 }
@@ -183,12 +180,10 @@ func (dome *Dome) Block(request *http.Request) {
 // refreshes its TTL.
 func (dome *Dome) incrementBlockCount(remoteAddress string) {
 
-	// Otter exposes no atomic update, so a per-IP shard lock makes
-	// the read-modify-write atomic; without it, concurrent errors from one IP would
-	// lose increments -- exactly the burst this counter exists to catch.
+	// Otter exposes no atomic update, so a shard lock makes the read-modify-write atomic.
+	// Without it, concurrent errors from one IP lose increments -- the exact burst this catches.
 
-	// Lock the shard this IP maps to. Different IPs almost always land on
-	// different shards, so legitimate traffic rarely contends.
+	// Lock the shard this IP maps to
 	lock := &dome.blockCountLocks[blockCountShard(remoteAddress)]
 	lock.Lock()
 	defer lock.Unlock()
