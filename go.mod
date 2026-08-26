@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/benpate/data v0.33.0
-	github.com/benpate/derp v0.39.0
+	github.com/benpate/derp v0.40.0
 	github.com/benpate/exp v0.11.0
 	github.com/cloudflare/ahocorasick v0.0.0-20240916140611-054963ec9396
 	github.com/labstack/echo/v4 v4.15.4
