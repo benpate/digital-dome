@@ -22,15 +22,16 @@ const blockCountShards = 256
 
 // Dome object contains the matcher that is used to identify blocked user agents.
 type Dome struct {
-	clientIP          ClientIPResolver
-	blockedUserAgents *ahocorasick.Matcher
-	blockedPaths      *ahocorasick.Matcher
-	softBlockedPaths  *ahocorasick.Matcher
-	blockedIPs        otter.CacheWithVariableTTL[string, int]
-	blockCountLocks   [blockCountShards]sync.Mutex
-	logDatabase       data.Collection
-	logStatusCodes    []int
-	blockStatusCodes  []int
+	clientIP           ClientIPResolver
+	blockedUserAgents  *ahocorasick.Matcher
+	blockedPaths       *ahocorasick.Matcher
+	softBlockedPaths   *ahocorasick.Matcher
+	blockedQueryParams []string
+	blockedIPs         otter.CacheWithVariableTTL[string, int]
+	blockCountLocks    [blockCountShards]sync.Mutex
+	logDatabase        data.Collection
+	logStatusCodes     []int
+	blockStatusCodes   []int
 }
 
 // New returns a fully initialized Dome object, using clientIP to resolve the
@@ -52,6 +53,7 @@ func New(clientIP ClientIPResolver, options ...Option) *Dome {
 		BlockKnownBadBots(),
 		BlockPaths(BlockedPaths...),
 		SoftBlockPaths(SuspiciousPaths...),
+		BlockQueryParams(BlockedQueryParams...),
 		BlockStatusCodes(http.StatusForbidden),
 		LogStatusCodes(http.StatusNotFound),
 	)
@@ -72,8 +74,8 @@ func (dome *Dome) With(options ...Option) {
 	}
 }
 
-// VerifyRequest returns an error if the request should be blocked (a previously
-// flagged IP, an empty or blocked User-Agent, or a blocked path), or nil if it is allowed.
+// VerifyRequest returns an error if the request should be blocked (a previously flagged IP, an empty
+// or blocked User-Agent, a blocked path, or a blocked query parameter), or nil if it is allowed.
 func (dome *Dome) VerifyRequest(request *http.Request) error {
 
 	const location = "dome.VerifyRequest"
@@ -101,6 +103,18 @@ func (dome *Dome) VerifyRequest(request *http.Request) error {
 	if dome.blockedPaths != nil {
 		if path := request.URL.Path; dome.blockedPaths.Contains([]byte(path)) {
 			return derp.Forbidden(location, "Path is blocked", path)
+		}
+	}
+
+	// RULE: Block query parameters that match the blocklist
+	if len(dome.blockedQueryParams) > 0 {
+
+		query := request.URL.Query()
+
+		for _, name := range dome.blockedQueryParams {
+			if query.Has(name) {
+				return derp.Forbidden(location, "Query parameter is blocked", name)
+			}
 		}
 	}
 

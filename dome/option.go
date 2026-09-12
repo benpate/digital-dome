@@ -53,6 +53,22 @@ func BlockPaths(paths ...string) Option {
 }
 
 /******************************************
+ * Blocking Known Query Parameters
+ ******************************************/
+
+// BlockQueryParams is a dome.Option that blocks requests carrying any of the
+// provided query parameter names, regardless of the path they are sent to.
+func BlockQueryParams(names ...string) Option {
+	return func(d *Dome) {
+
+		// Matched by NAME, and exactly, unlike every other list here. A query VALUE is
+		// attacker-controlled, so a substring rule over values fires on ordinary traffic --
+		// any link preview or oEmbed lookup whose target URL merely mentions the pattern.
+		d.blockedQueryParams = names
+	}
+}
+
+/******************************************
  * Log Handling
  ******************************************/
 

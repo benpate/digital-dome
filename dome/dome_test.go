@@ -51,6 +51,7 @@ func TestNew_Defaults(t *testing.T) {
 	require.NotNil(t, dome.blockedUserAgents)
 	require.NotNil(t, dome.blockedPaths)
 	require.NotNil(t, dome.softBlockedPaths)
+	require.Equal(t, BlockedQueryParams, dome.blockedQueryParams)
 	require.Equal(t, []int{http.StatusForbidden}, dome.blockStatusCodes)
 	require.Equal(t, []int{http.StatusNotFound}, dome.logStatusCodes)
 	require.Equal(t, 1024, dome.blockedIPs.Capacity())
@@ -155,6 +156,46 @@ func TestVerifyRequest_BlockedPath(t *testing.T) {
 
 	require.NotNil(t, err)
 	require.Equal(t, http.StatusForbidden, derp.ErrorCode(err))
+}
+
+func TestVerifyRequest_BlockedQueryParam(t *testing.T) {
+
+	dome := New(RemoteAddr)
+	t.Cleanup(dome.Close)
+
+	// "rest_route" is in the default BlockedQueryParams list, and the PATH here is "/",
+	// which is exactly how a WordPress probe walks around the path blocklist.
+	request := newTestRequest("GET", "/?rest_route=/batch/v1", "GoodBrowser", "1.2.3.4:5678")
+	err := dome.VerifyRequest(request)
+
+	require.NotNil(t, err)
+	require.Equal(t, http.StatusForbidden, derp.ErrorCode(err))
+}
+
+func TestVerifyRequest_BlockedQueryParam_EncodedValue(t *testing.T) {
+
+	dome := New(RemoteAddr)
+	t.Cleanup(dome.Close)
+
+	// The same probe with an encoded VALUE. Matching on the parameter name catches every spelling.
+	for _, rawQuery := range []string{"rest_route=%2Fbatch%2Fv1", "rest_route=/batch%2Fv1", "rest_route"} {
+
+		request := newTestRequest("GET", "/?"+rawQuery, "GoodBrowser", "1.2.3.4:5678")
+		err := dome.VerifyRequest(request)
+
+		require.NotNil(t, err, rawQuery)
+		require.Equal(t, http.StatusForbidden, derp.ErrorCode(err), rawQuery)
+	}
+}
+
+func TestVerifyRequest_QueryValueIsNotMatched(t *testing.T) {
+
+	dome := New(RemoteAddr)
+	t.Cleanup(dome.Close)
+
+	// A link preview whose target URL merely mentions the pattern is ordinary traffic.
+	request := newTestRequest("GET", "/oembed?url=https%3A%2F%2Fexample.com%2F%3Frest_route%3D%2Fbatch%2Fv1", "GoodBrowser", "1.2.3.4:5678")
+	require.Nil(t, dome.VerifyRequest(request))
 }
 
 func TestVerifyRequest_AllowedRequest(t *testing.T) {

@@ -113,6 +113,28 @@ func TestSoftBlockPaths(t *testing.T) {
 }
 
 /******************************************
+ * Block Query Parameter Options
+ ******************************************/
+
+func TestBlockQueryParams(t *testing.T) {
+
+	dome := New(RemoteAddr, BlockQueryParams("rest_route", "debug"))
+	t.Cleanup(dome.Close)
+
+	require.Equal(t, []string{"rest_route", "debug"}, dome.blockedQueryParams)
+}
+
+func TestBlockQueryParams_Empty(t *testing.T) {
+
+	dome := New(RemoteAddr, BlockQueryParams())
+	t.Cleanup(dome.Close)
+
+	// Passing no names disables the check without disturbing the other matchers.
+	require.Empty(t, dome.blockedQueryParams)
+	require.Nil(t, dome.VerifyRequest(newTestRequest("GET", "/?rest_route=/batch/v1", "GoodBrowser", "1.2.3.4:5678")))
+}
+
+/******************************************
  * Status Code Options
  ******************************************/
 
