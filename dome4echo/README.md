@@ -16,4 +16,6 @@ e.Use(dome4echo.New(d))
 
 - **Errors from `next` are fed back into the Dome.** A non-nil error returned by the downstream handler is passed to `HandleError`, which is how 4xx/5xx responses accrue against an IP's block score. The middleware returns that same error so Echo's own error handler still runs — Dome observes, it does not swallow.
 
+- **Echo's own routing failures are translated before the Dome classifies them.** Echo answers an unrouted path or an unsupported method with `*echo.HTTPError`, a type `derp.ErrorCode` does not recognize and therefore reads as a generic 500. The middleware rewraps it in a derp error carrying Echo's status code, so a 405 is logged and counted as a 405 rather than as a server error. The original `*echo.HTTPError` stays in the chain, so a downstream error handler can still find it with `errors.As`.
+
 - **Pair it with the right client-IP resolver.** The `Dome` is only as accurate as its `ClientIPResolver`. Behind a proxy, inject a proxy-aware resolver when constructing the `Dome`; otherwise scores and blocks attach to the proxy's address, not the real client. `dome4echo` itself does no IP resolution.
