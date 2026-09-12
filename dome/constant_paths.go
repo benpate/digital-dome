@@ -39,7 +39,7 @@ var BlockedPaths = []string{
 	"/_ignition/",              // Laravel Ignition, CVE-2021-3129 (RCE)
 	"/media/system/js/core.js", // Joomla core.js
 	"/net/controller.ashx",     // .NET controller
-	"/_next/",                  // Next.js internals
+	"/_next",                   // Next.js internals. No trailing slash: probes POST to bare "/_next"
 	"/_rsc",                    // React Server Components probe
 	"/sftp-config.json",        // CVE-2024-20262 (Cisco IOS Secure Copy)
 	"/storage/logs/",           // Laravel log disclosure
@@ -115,6 +115,7 @@ var SuspiciousPaths = []string{
 	"/phpunit",
 	"/Public/",
 	"/renderers",
+	"/rsc", // React Server Components probe. Soft, because it is short and an application may want the route
 	"/sendgrid.env",
 	"/static/",
 	"/temp",
