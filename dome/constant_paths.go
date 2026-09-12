@@ -76,7 +76,6 @@ var SuspiciousPaths = []string{
 	"/administrator.zip",
 	"/allowurl.txt",
 	"/app",
-	"/api",
 	"/aspera/",
 	"/aspx/",
 	"/@fs/", // Vite filesystem access. Soft, because an application's own namespace may start with "@"
@@ -101,7 +100,6 @@ var SuspiciousPaths = []string{
 	"/dump.sql",
 	"/env",
 	"/FCKeditor/",
-	"/feed",
 	"/.gits",
 	"/info",
 	"/infos",
