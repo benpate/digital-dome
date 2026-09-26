@@ -8,6 +8,8 @@ var BlockedPaths = []string{
 	"/.aws.yml",               // AWS configuration file
 	"/.env",                   // System Environment file
 	"/.cgi-bin",               // CGI directory
+	".cgi",                    // CGI scripts: login.cgi, swarm.cgi, send_order.cgi (router and camera logins)
+	"/.codex/",                // OpenAI Codex CLI credentials: /home/.codex/auth.json
 	"/.git/",                  // Git repository
 	"/.vscode/",               // Visual Studio Code directory
 	"/.msmtprc",               // ???
@@ -33,11 +35,16 @@ var BlockedPaths = []string{
 	"cgiapi/",                  // ALFA TEaM Shell CGI directory: alfacgiapi, Erencgiapi
 	"/ERENUSE",                 // "Eren" fork of the ALFA TEaM Shell
 	"/api/rsc",                 // React Server Components probe
+	"/api/trpc",                // tRPC endpoint probe
+	"/api/v1/validate/code",    // CVE-2025-3248 (Langflow code-validation RCE)
 	"/aspera/faspex",           // CVE-2024-45096 (Aspera Faspex)
+	"/cobbler_api",             // Cobbler XML-RPC API
 	"/config.json",             // JSON configuration file
+	"/debug/default/",          // Yii debug toolbar: /debug/default/view, /debug/default/toolbar
 	"/elfinder/connector",      // CVE-2021-32682 (elFinder file manager)
 	"/_ignition/",              // Laravel Ignition, CVE-2021-3129 (RCE)
 	"/media/system/js/core.js", // Joomla core.js
+	"/j_security_check",        // Java EE form login
 	"/net/controller.ashx",     // .NET controller
 	"/_next",                   // Next.js internals. No trailing slash: probes POST to bare "/_next"
 	"/_rsc",                    // React Server Components probe

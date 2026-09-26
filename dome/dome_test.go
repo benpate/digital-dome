@@ -36,6 +36,7 @@ func TestUserAgents(t *testing.T) {
 	verify("Mozilla 5.0 / Whatever", true)
 	verify("Applebot-Extended", false)
 	verify("ClaudeBot", false)
+	verify("cve-2026-87902-poc/1.0", false)
 }
 
 /******************************************
@@ -52,6 +53,7 @@ func TestNew_Defaults(t *testing.T) {
 	require.NotNil(t, dome.blockedPaths)
 	require.NotNil(t, dome.softBlockedPaths)
 	require.Equal(t, BlockedQueryParams, dome.blockedQueryParams)
+	require.Equal(t, BlockedRequestHeaders, dome.blockedRequestHeaders)
 	require.Equal(t, []int{http.StatusForbidden}, dome.blockStatusCodes)
 	require.Equal(t, []int{http.StatusNotFound}, dome.logStatusCodes)
 	require.Equal(t, 1024, dome.blockedIPs.Capacity())
@@ -188,6 +190,21 @@ func TestVerifyRequest_BlockedQueryParam_EncodedValue(t *testing.T) {
 	}
 }
 
+func TestVerifyRequest_BlockedQueryParam_Signatures(t *testing.T) {
+
+	dome := New(RemoteAddr)
+	t.Cleanup(dome.Close)
+
+	// Each is a probe observed against a path that no longer matters: the name alone is the signal
+	for _, path := range []string{"/@fs/etc/passwd?raw??", "/?wicket:interface=:0:userPanel:loginForm::IFormSubmitListener::"} {
+
+		err := dome.VerifyRequest(newTestRequest("GET", path, "GoodBrowser", "1.2.3.4:5678"))
+
+		require.NotNil(t, err, path)
+		require.Equal(t, http.StatusForbidden, derp.ErrorCode(err), path)
+	}
+}
+
 func TestVerifyRequest_QueryValueIsNotMatched(t *testing.T) {
 
 	dome := New(RemoteAddr)
@@ -195,6 +212,37 @@ func TestVerifyRequest_QueryValueIsNotMatched(t *testing.T) {
 
 	// A link preview whose target URL merely mentions the pattern is ordinary traffic.
 	request := newTestRequest("GET", "/oembed?url=https%3A%2F%2Fexample.com%2F%3Frest_route%3D%2Fbatch%2Fv1", "GoodBrowser", "1.2.3.4:5678")
+	require.Nil(t, dome.VerifyRequest(request))
+}
+
+func TestVerifyRequest_BlockedRequestHeader(t *testing.T) {
+
+	dome := New(RemoteAddr)
+	t.Cleanup(dome.Close)
+
+	// Every default is blocked by its presence alone, including with an empty value
+	for _, name := range BlockedRequestHeaders {
+		for _, value := range []string{"x", ""} {
+
+			request := newTestRequest("POST", "/", "GoodBrowser", "1.2.3.4:5678")
+			request.Header.Set(name, value)
+			err := dome.VerifyRequest(request)
+
+			require.NotNil(t, err, name)
+			require.Equal(t, http.StatusForbidden, derp.ErrorCode(err), name)
+		}
+	}
+}
+
+func TestVerifyRequest_RequestHeaderValueIsNotMatched(t *testing.T) {
+
+	dome := New(RemoteAddr)
+	t.Cleanup(dome.Close)
+
+	// A header VALUE that merely mentions a blocked name is ordinary traffic
+	request := newTestRequest("GET", "/", "GoodBrowser", "1.2.3.4:5678")
+	request.Header.Set("Referer", "https://example.com/?q=Next-Action")
+	request.Header.Set("Access-Control-Request-Headers", "next-action")
 	require.Nil(t, dome.VerifyRequest(request))
 }
 
