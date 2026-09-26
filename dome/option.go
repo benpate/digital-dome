@@ -1,6 +1,8 @@
 package dome
 
 import (
+	"net/textproto"
+
 	"github.com/benpate/data"
 	"github.com/cloudflare/ahocorasick"
 )
@@ -65,6 +67,25 @@ func BlockQueryParams(names ...string) Option {
 		// attacker-controlled, so a substring rule over values fires on ordinary traffic --
 		// any link preview or oEmbed lookup whose target URL merely mentions the pattern.
 		d.blockedQueryParams = names
+	}
+}
+
+/******************************************
+ * Blocking Known Request Headers
+ ******************************************/
+
+// BlockRequestHeaders is a dome.Option that blocks requests carrying any of the
+// provided request header names, whatever their values.
+func BlockRequestHeaders(names ...string) Option {
+	return func(d *Dome) {
+
+		// Matched by NAME, exactly, like query parameters and for the same reason: a header
+		// VALUE is attacker-controlled. Canonical names make the lookup a single map access.
+		d.blockedRequestHeaders = make([]string, 0, len(names))
+
+		for _, name := range names {
+			d.blockedRequestHeaders = append(d.blockedRequestHeaders, textproto.CanonicalMIMEHeaderKey(name))
+		}
 	}
 }
 

@@ -23,6 +23,14 @@ func TestBlockedPaths_Signatures(t *testing.T) {
 		"/_rsc",
 		"/storage/logs/laravel.log",
 		"/__vite_rsc_findSourceMapURL",
+		"/actions/debug/default/view",
+		"/api/trpc",
+		"/api/v1/validate/code",
+		"/cobbler_api",
+		"/home/.codex/auth.json",
+		"/j_security_check",
+		"/login.cgi",
+		"/send_order.cgi",
 	}
 
 	for _, path := range paths {

@@ -135,6 +135,32 @@ func TestBlockQueryParams_Empty(t *testing.T) {
 }
 
 /******************************************
+ * Block Request Header Options
+ ******************************************/
+
+func TestBlockRequestHeaders(t *testing.T) {
+
+	dome := New(RemoteAddr, BlockRequestHeaders("next-action", "X-FORWARED"))
+	t.Cleanup(dome.Close)
+
+	// Names are stored in canonical form, which is how net/http keys an inbound request's headers
+	require.Equal(t, []string{"Next-Action", "X-Forwared"}, dome.blockedRequestHeaders)
+}
+
+func TestBlockRequestHeaders_Empty(t *testing.T) {
+
+	dome := New(RemoteAddr, BlockRequestHeaders())
+	t.Cleanup(dome.Close)
+
+	// Passing no names disables the check without disturbing the other matchers
+	request := newTestRequest("POST", "/", "GoodBrowser", "1.2.3.4:5678")
+	request.Header.Set("Next-Action", "x")
+
+	require.Empty(t, dome.blockedRequestHeaders)
+	require.Nil(t, dome.VerifyRequest(request))
+}
+
+/******************************************
  * Status Code Options
  ******************************************/
 

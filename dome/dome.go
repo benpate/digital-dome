@@ -22,16 +22,17 @@ const blockCountShards = 256
 
 // Dome object contains the matcher that is used to identify blocked user agents.
 type Dome struct {
-	clientIP           ClientIPResolver
-	blockedUserAgents  *ahocorasick.Matcher
-	blockedPaths       *ahocorasick.Matcher
-	softBlockedPaths   *ahocorasick.Matcher
-	blockedQueryParams []string
-	blockedIPs         otter.CacheWithVariableTTL[string, int]
-	blockCountLocks    [blockCountShards]sync.Mutex
-	logDatabase        data.Collection
-	logStatusCodes     []int
-	blockStatusCodes   []int
+	clientIP              ClientIPResolver
+	blockedUserAgents     *ahocorasick.Matcher
+	blockedPaths          *ahocorasick.Matcher
+	softBlockedPaths      *ahocorasick.Matcher
+	blockedQueryParams    []string
+	blockedRequestHeaders []string
+	blockedIPs            otter.CacheWithVariableTTL[string, int]
+	blockCountLocks       [blockCountShards]sync.Mutex
+	logDatabase           data.Collection
+	logStatusCodes        []int
+	blockStatusCodes      []int
 }
 
 // New returns a fully initialized Dome object, using clientIP to resolve the
@@ -54,6 +55,7 @@ func New(clientIP ClientIPResolver, options ...Option) *Dome {
 		BlockPaths(BlockedPaths...),
 		SoftBlockPaths(SuspiciousPaths...),
 		BlockQueryParams(BlockedQueryParams...),
+		BlockRequestHeaders(BlockedRequestHeaders...),
 		BlockStatusCodes(http.StatusForbidden),
 		LogStatusCodes(http.StatusNotFound),
 	)
@@ -74,8 +76,8 @@ func (dome *Dome) With(options ...Option) {
 	}
 }
 
-// VerifyRequest returns an error if the request should be blocked (a previously flagged IP, an empty
-// or blocked User-Agent, a blocked path, or a blocked query parameter), or nil if it is allowed.
+// VerifyRequest returns an error if the request should be blocked (a previously flagged IP, an empty or
+// blocked User-Agent, a blocked path, query parameter, or request header), or nil if it is allowed.
 func (dome *Dome) VerifyRequest(request *http.Request) error {
 
 	const location = "dome.VerifyRequest"
@@ -115,6 +117,13 @@ func (dome *Dome) VerifyRequest(request *http.Request) error {
 			if query.Has(name) {
 				return derp.Forbidden(location, "Query parameter is blocked", name)
 			}
+		}
+	}
+
+	// RULE: Block request headers that match the blocklist
+	for _, name := range dome.blockedRequestHeaders {
+		if _, exists := request.Header[name]; exists {
+			return derp.Forbidden(location, "Request header is blocked", name)
 		}
 	}
 
