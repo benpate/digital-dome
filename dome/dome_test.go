@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"testing"
 
@@ -37,6 +38,36 @@ func TestUserAgents(t *testing.T) {
 	verify("Applebot-Extended", false)
 	verify("ClaudeBot", false)
 	verify("cve-2026-87902-poc/1.0", false)
+	verify("Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.1; Trident/4.0)", false)
+	verify("Mozilla/5.0 (compatible; MSIE 6.0; Windows NT 10.0; Trident/5.0)", false)
+	verify("Mozilla/4.0 (compatible; ms-office; MSIE 7.0; Windows NT 10.0)", true)
+
+	// Real clients that once collided with short, generic entries matched as bare substrings
+	verify("Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)", true)
+	verify("node-fetch/1.0 (+https://github.com/bitinn/node-fetch)", true)
+	verify("Pump.io/5.1.4", true)
+	verify("Jetty/12.0.9", true)
+}
+
+// TestAllKnownBadBots_ShortEntriesAreScanners verifies that every short entry in the list names a
+// vulnerability scanner, because a short, generic word matches inside real clients' User-Agents.
+func TestAllKnownBadBots_ShortEntriesAreScanners(t *testing.T) {
+
+	scanners := []string{
+		"CVE-", "cve-", "FHscan", "Fimap", "Havij", "Jorgee", "Masscan", "Nessus", "Nikto", "Nmap", "Nuclei", "OpenVAS",
+		"Openvas", "Shodan", "Sqlmap", "Sqlworm", "Sqworm", "WPScan", "Webshag", "Whatweb", "Wprecon", "ZmEu", "sysscan", "zgrab",
+	}
+
+	for _, agent := range AllKnownBadBots[len(KnownAIBots):] {
+
+		// Longer names, and names that carry a bot or crawler suffix, are distinctive enough
+		if len(agent) > 7 || strings.ContainsAny(agent, "0123456789.") || strings.Contains(strings.ToLower(agent), "bot") ||
+			strings.Contains(strings.ToLower(agent), "spider") || strings.Contains(strings.ToLower(agent), "crawl") {
+			continue
+		}
+
+		require.Contains(t, scanners, agent, "short User-Agent entry is not a known scanner")
+	}
 }
 
 /******************************************
@@ -196,7 +227,7 @@ func TestVerifyRequest_BlockedQueryParam_Signatures(t *testing.T) {
 	t.Cleanup(dome.Close)
 
 	// Each is a probe observed against a path that no longer matters: the name alone is the signal
-	for _, path := range []string{"/@fs/etc/passwd?raw??", "/?wicket:interface=:0:userPanel:loginForm::IFormSubmitListener::"} {
+	for _, path := range []string{"/@fs/etc/passwd?raw??", "/?wicket:interface=:0:userPanel:loginForm::IFormSubmitListener::", "/?page_id=902546"} {
 
 		err := dome.VerifyRequest(newTestRequest("GET", path, "GoodBrowser", "1.2.3.4:5678"))
 

@@ -7,4 +7,11 @@ var BlockedRequestHeaders = []string{
 	"X-Middleware-Subrequest", // Next.js middleware bypass, CVE-2025-29927
 	"X-Nextjs-Data",           // Next.js cache-poisoning probe, CVE-2024-46982
 	"X-Forwared",              // Misspelled by an IP-spoofing kit that sends it beside X-Client-Ip: 127.0.0.1
+
+	// Scanners that announce themselves, from the OWASP Core Rule Set v3 (rule 913110)
+	"Acunetix-Product",
+	"Acunetix-Scanning-Agreement",
+	"Acunetix-User-Agreement",
+	"X-Ratproxy-Loop",
+	"X-Scanner",
 }
