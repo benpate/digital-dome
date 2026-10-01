@@ -7,7 +7,7 @@ require (
 	github.com/benpate/derp v0.44.0
 	github.com/benpate/exp v0.11.0
 	github.com/cloudflare/ahocorasick v0.0.0-20240916140611-054963ec9396
-	github.com/labstack/echo/v4 v4.15.4
+	github.com/labstack/echo/v4 v4.16.0
 	github.com/maypok86/otter v1.2.4
 	github.com/stretchr/testify v1.12.1
 )
