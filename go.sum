@@ -1,7 +1,7 @@
 github.com/benpate/data v0.34.0 h1:4S7855E9rv1t6OBNC+8DT6kGm4RSXM1S3+x4Ak5c+fc=
 github.com/benpate/data v0.34.0/go.mod h1:3vwKsd2lFI1XgBvvv0QE3l2oaYsxnuQrmthYJEidJ00=
-github.com/benpate/derp v0.48.0 h1:0qsntbAGQMuJ2PTlxILqCtdYuZmRHJh6jsFAH+0k4bw=
-github.com/benpate/derp v0.48.0/go.mod h1:Lpak9Qm2b1sXT03OBzwWWG/oKqhUFE5Ib7LKYDASV0s=
+github.com/benpate/derp v0.49.0 h1:8M3bQgKnip6m1nSm27Q0LenAX9pnNK4LJshXLmTDOb4=
+github.com/benpate/derp v0.49.0/go.mod h1:Lpak9Qm2b1sXT03OBzwWWG/oKqhUFE5Ib7LKYDASV0s=
 github.com/benpate/exp v0.12.0 h1:6nVyNuv3iFjF0nnYnYoWyeJcPam+fWzkSR9K0hmZlDc=
 github.com/benpate/exp v0.12.0/go.mod h1:wV/bpDgPJMJwCGYGXVA1VTGszGb09s48ek0QPDe9CFE=
 github.com/cloudflare/ahocorasick v0.0.0-20240916140611-054963ec9396 h1:W2HK1IdCnCGuLUeyizSCkwvBjdj0ZL7mxnJYQ3poyzI=
