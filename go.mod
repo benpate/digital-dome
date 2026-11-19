@@ -1,6 +1,6 @@
 module github.com/benpate/digital-dome
 
-go 1.27.3
+go 1.27.4
 
 require (
 	github.com/benpate/data v0.34.0
